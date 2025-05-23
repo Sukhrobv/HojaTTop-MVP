@@ -1,45 +1,17 @@
-import React from 'react'
-import { ScrollView, YStack, XStack, Text, Button, Card, Separator } from 'tamagui'
-import { Alert } from 'react-native'
-import { useNavigation, useRoute } from '@react-navigation/native'
+import React, { useState, useEffect } from 'react'
+import { ScrollView, YStack, XStack, Text, Button, Card, Separator, Spinner } from 'tamagui'
+import { Alert, Linking } from 'react-native'
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native'
 import { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import { RouteProp } from '@react-navigation/native'
 import { RootStackParamList } from '@/navigation'
+import { useReviews } from '@/hooks/useReviews'
+import { getToiletById } from '@/services/toilets'
+import { Toilet } from '@/types'
+import { RatingStars, ReviewsList, ReviewStats } from '@components/ReviewComponents'
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'ToiletDetail'>
 type RouteProps = RouteProp<RootStackParamList, 'ToiletDetail'>
-
-// Mock data - will be replaced with real data from Firebase
-const mockToiletData = {
-  toilet1: {
-    id: 'toilet1',
-    name: 'Кафе "Пончик"',
-    address: 'ул. Амира Темура, 41',
-    rating: 4.5,
-    reviewCount: 23,
-    features: {
-      isAccessible: true,
-      hasBabyChanging: true,
-      hasAblution: false,
-      isFree: false,
-    },
-    openHours: '08:00 - 22:00',
-  },
-  toilet2: {
-    id: 'toilet2',
-    name: 'ТЦ "Самарканд Дарваза"',
-    address: 'ул. Коратош, 5А',
-    rating: 3.8,
-    reviewCount: 45,
-    features: {
-      isAccessible: true,
-      hasBabyChanging: false,
-      hasAblution: true,
-      isFree: true,
-    },
-    openHours: '09:00 - 21:00',
-  },
-}
 
 const FeatureItem = ({ label, available }: { label: string; available: boolean }) => (
   <XStack alignItems="center" marginVertical="$1">
@@ -52,33 +24,96 @@ const FeatureItem = ({ label, available }: { label: string; available: boolean }
   </XStack>
 )
 
-const RatingStars = ({ rating }: { rating: number }) => {
-  const stars = Array.from({ length: 5 }, (_, i) => i < Math.floor(rating) ? '⭐' : '☆')
-  return (
-    <XStack>
-      <Text fontSize={16}>{stars.join('')}</Text>
-      <Text marginLeft="$2" color="$colorSubtle">
-        {rating.toFixed(1)}
-      </Text>
-    </XStack>
-  )
-}
-
 export default function ToiletDetailScreen() {
   const navigation = useNavigation<NavigationProp>()
   const route = useRoute<RouteProps>()
   const { toiletId } = route.params
 
-  // Get mock data
-  const toilet = mockToiletData[toiletId as keyof typeof mockToiletData] || mockToiletData.toilet1
+  const [toilet, setToilet] = useState<Toilet | null>(null)
+  const [toiletLoading, setToiletLoading] = useState(true)
+  const [toiletError, setToiletError] = useState<string | null>(null)
+
+  const {
+    reviews,
+    loading: reviewsLoading,
+    error: reviewsError,
+    refresh: refreshReviews,
+    forceRefresh: forceRefreshReviews,
+    stats
+  } = useReviews(toiletId)
+
+  // Refresh reviews when screen comes into focus (after adding review)
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('ToiletDetail screen focused, refreshing reviews...')
+      forceRefreshReviews()
+    }, [forceRefreshReviews])
+  )
+
+  // Load toilet details
+  useEffect(() => {
+    const loadToilet = async () => {
+      try {
+        setToiletLoading(true)
+        setToiletError(null)
+        
+        const { toilet: toiletData } = await getToiletById(toiletId)
+        
+        if (toiletData) {
+          setToilet(toiletData)
+        } else {
+          setToiletError('Туалет не найден')
+        }
+      } catch (error) {
+        console.error('Error loading toilet:', error)
+        setToiletError('Ошибка загрузки данных')
+      } finally {
+        setToiletLoading(false)
+      }
+    }
+
+    loadToilet()
+  }, [toiletId])
 
   const handleAddReview = () => {
-    navigation.navigate('AddReview', { toiletId: toilet.id })
+    navigation.navigate('AddReview', { toiletId })
   }
 
   const handleBuildRoute = () => {
-    Alert.alert('Навигация', 'Построение маршрута к туалету...')
-    // TODO: Implement route building with Yandex Maps
+    if (!toilet) return
+    
+    // Open in Maps app
+    const url = `https://maps.google.com/?q=${toilet.latitude},${toilet.longitude}`
+    
+    Linking.canOpenURL(url).then(supported => {
+      if (supported) {
+        Linking.openURL(url)
+      } else {
+        Alert.alert('Ошибка', 'Не удалось открыть карты')
+      }
+    })
+  }
+
+  if (toiletLoading) {
+    return (
+      <YStack flex={1} alignItems="center" justifyContent="center">
+        <Spinner size="large" color="#4ECDC4" />
+        <Text marginTop="$3" color="#757575">Загрузка...</Text>
+      </YStack>
+    )
+  }
+
+  if (toiletError || !toilet) {
+    return (
+      <YStack flex={1} alignItems="center" justifyContent="center" padding="$4">
+        <Text fontSize={18} color="#757575" textAlign="center" marginBottom="$4">
+          {toiletError || 'Туалет не найден'}
+        </Text>
+        <Button onPress={() => navigation.goBack()}>
+          <Text>Назад</Text>
+        </Button>
+      </YStack>
+    )
   }
 
   return (
@@ -103,7 +138,7 @@ export default function ToiletDetailScreen() {
             <YStack space="$3">
               {/* Rating */}
               <XStack alignItems="center" justifyContent="space-between">
-                <RatingStars rating={toilet.rating} />
+                <RatingStars rating={toilet.rating} size={20} />
                 <Text color="$colorSubtle">
                   {toilet.reviewCount} отзывов
                 </Text>
@@ -132,19 +167,19 @@ export default function ToiletDetailScreen() {
             <YStack space="$2">
               <FeatureItem 
                 label="Доступно для инвалидов" 
-                available={toilet.features?.isAccessible || false} 
+                available={toilet.features.isAccessible} 
               />
               <FeatureItem 
                 label="Пеленальный столик" 
-                available={toilet.features?.hasBabyChanging || false} 
+                available={toilet.features.hasBabyChanging} 
               />
               <FeatureItem 
                 label="Место для омовения" 
-                available={toilet.features?.hasAblution || false} 
+                available={toilet.features.hasAblution} 
               />
               <FeatureItem 
                 label="Бесплатно" 
-                available={toilet.features?.isFree || false} 
+                available={toilet.features.isFree} 
               />
             </YStack>
           </Card.Footer>
@@ -175,20 +210,40 @@ export default function ToiletDetailScreen() {
           </Button>
         </YStack>
 
-        {/* Reviews Preview */}
+        {/* Review Statistics */}
+        <ReviewStats stats={stats} />
+
+        {/* Reviews Section */}
         <Card elevate bordered>
           <Card.Header>
-            <Text fontSize={18} fontWeight="bold">
-              Последние отзывы
-            </Text>
+            <XStack alignItems="center" justifyContent="space-between">
+              <Text fontSize={18} fontWeight="bold">
+                Отзывы ({reviews.length})
+              </Text>
+              {reviewsError && (
+                <Button
+                  size="$2"
+                  variant="outlined"
+                  onPress={forceRefreshReviews}
+                  disabled={reviewsLoading}
+                >
+                  <Text fontSize={12}>
+                    {reviewsLoading ? 'Загрузка...' : 'Обновить'}
+                  </Text>
+                </Button>
+              )}
+            </XStack>
           </Card.Header>
           
           <Separator />
           
           <Card.Footer padded>
-            <Text color="$colorSubtle" textAlign="center">
-              Отзывы появятся здесь
-            </Text>
+            <ReviewsList 
+              reviews={reviews}
+              loading={reviewsLoading}
+              error={reviewsError}
+              emptyMessage="Отзывов о данном туалете пока нет"
+            />
           </Card.Footer>
         </Card>
       </YStack>

@@ -188,9 +188,45 @@ export class ReviewCacheService extends CacheService {
 
   // Add review to cache
   static async addReviewToCache(review: Review): Promise<void> {
-    const cachedReviews = await this.getCachedReviews() || []
-    const updatedReviews = [...cachedReviews, review]
-    await this.cacheReviews(updatedReviews)
+    try {
+      const cachedReviews = await this.getCachedReviews() || []
+      
+      // Check if review already exists (avoid duplicates)
+      const existingIndex = cachedReviews.findIndex(r => r.id === review.id)
+      
+      let updatedReviews: Review[]
+      if (existingIndex >= 0) {
+        // Update existing review
+        updatedReviews = [...cachedReviews]
+        updatedReviews[existingIndex] = review
+      } else {
+        // Add new review at the beginning (newest first)
+        updatedReviews = [review, ...cachedReviews]
+      }
+      
+      await this.cacheReviews(updatedReviews)
+      console.log('Review added to cache:', review.id)
+    } catch (error) {
+      console.error('Error adding review to cache:', error)
+    }
+  }
+
+  // Update specific toilet's reviews in cache
+  static async updateToiletReviewsInCache(toiletId: string, reviews: Review[]): Promise<void> {
+    try {
+      const allCachedReviews = await this.getCachedReviews() || []
+      
+      // Remove all reviews for this toilet
+      const otherReviews = allCachedReviews.filter(review => review.toiletId !== toiletId)
+      
+      // Add updated reviews for this toilet
+      const updatedReviews = [...reviews, ...otherReviews]
+      
+      await this.cacheReviews(updatedReviews)
+      console.log(`Updated ${reviews.length} reviews for toilet ${toiletId} in cache`)
+    } catch (error) {
+      console.error('Error updating toilet reviews in cache:', error)
+    }
   }
 }
 
