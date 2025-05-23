@@ -1,7 +1,8 @@
 // Hook for fetching nearby toilets
 import { useState, useEffect, useCallback } from 'react'
 import { LocationWithDistance, Coordinates, Filters } from '@/types'
-import { getNearbyToilets, applyFilters } from '@/services/toilets'
+import { getNearbyToilets, applyFilters, getAllToilets } from '@/services/toilets'
+import { calculateDistance } from '@/services/location'
 
 interface UseNearbyToiletsReturn {
   toilets: LocationWithDistance[]
@@ -18,26 +19,34 @@ export function useNearbyToilets(
 ): UseNearbyToiletsReturn {
   const [toilets, setToilets] = useState<LocationWithDistance[]>([])
   const [filteredToilets, setFilteredToilets] = useState<LocationWithDistance[]>([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true) // Start with loading true
   const [error, setError] = useState<string | null>(null)
   const [activeFilters, setActiveFilters] = useState<Filters>({})
 
-  // Fetch nearby toilets
+  // Fetch toilets - if no location, get all toilets
   const fetchToilets = useCallback(async () => {
-    if (!userLocation) {
-      setError('Местоположение не определено')
-      return
-    }
-
     setLoading(true)
     setError(null)
 
     try {
-      const nearbyToilets = await getNearbyToilets(userLocation, maxDistanceKm)
-      setToilets(nearbyToilets)
+      let toiletsData: LocationWithDistance[]
+      
+      if (userLocation) {
+        // If we have location, get nearby toilets with distance
+        toiletsData = await getNearbyToilets(userLocation, maxDistanceKm)
+      } else {
+        // If no location, get all toilets without distance filtering
+        const allToilets = await getAllToilets()
+        toiletsData = allToilets.map(toilet => ({
+          ...toilet,
+          distance: 0 // Default distance when no location
+        }))
+      }
+      
+      setToilets(toiletsData)
       
       // Apply current filters to new data
-      const filtered = applyFilters(nearbyToilets, activeFilters)
+      const filtered = applyFilters(toiletsData, activeFilters)
       setFilteredToilets(filtered)
     } catch (err) {
       setError('Не удалось загрузить данные о туалетах')
@@ -54,12 +63,10 @@ export function useNearbyToilets(
     setFilteredToilets(filtered)
   }, [toilets])
 
-  // Fetch toilets when location changes
+  // Initial load - always fetch toilets, even without location
   useEffect(() => {
-    if (userLocation) {
-      fetchToilets()
-    }
-  }, [userLocation, fetchToilets])
+    fetchToilets()
+  }, [fetchToilets])
 
   return {
     toilets,
