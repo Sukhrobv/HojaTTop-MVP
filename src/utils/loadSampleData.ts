@@ -1,5 +1,5 @@
 // Utility to load sample data into Firestore
-import { collection, addDoc, getDocs, deleteDoc } from 'firebase/firestore'
+import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore'
 import { db, COLLECTIONS } from '@/services/firebase'
 import { sampleToilets, sampleReviews } from '@/services/sampleData'
 
@@ -7,15 +7,41 @@ export async function clearCollection(collectionName: string) {
   const querySnapshot = await getDocs(collection(db, collectionName))
   const deletePromises = querySnapshot.docs.map(doc => deleteDoc(doc.ref))
   await Promise.all(deletePromises)
-  console.log(`Cleared ${querySnapshot.size} documents from ${collectionName}`)
+}
+
+// Fix incomplete toilet documents
+export async function fixIncompleteToilets() {
+  const toiletsSnapshot = await getDocs(collection(db, COLLECTIONS.TOILETS))
+  
+  const updatePromises = toiletsSnapshot.docs.map(async (docSnap) => {
+    const data = docSnap.data()
+    
+    // Check if features is missing or incomplete
+    if (!data.features || typeof data.features !== 'object') {
+      const updatedData = {
+        features: {
+          isAccessible: data.features?.isAccessible || false,
+          hasBabyChanging: data.features?.hasBabyChanging || false,
+          hasAblution: data.features?.hasAblution || false,
+          isFree: data.features?.isFree || false
+        },
+        rating: data.rating || 0,
+        reviewCount: data.reviewCount || 0,
+        photos: data.photos || [],
+        lastUpdated: Date.now()
+      }
+      
+      await updateDoc(doc(db, COLLECTIONS.TOILETS, docSnap.id), updatedData)
+    }
+  })
+  
+  await Promise.all(updatePromises)
 }
 
 export async function loadSampleToilets() {
   try {
-    console.log('Loading sample toilets...')
-    
-    // Clear existing data (optional)
-    // await clearCollection(COLLECTIONS.TOILETS)
+    // First, fix any incomplete documents
+    await fixIncompleteToilets()
     
     const toiletIds: string[] = []
     
@@ -23,14 +49,9 @@ export async function loadSampleToilets() {
     for (const toilet of sampleToilets) {
       const docRef = await addDoc(collection(db, COLLECTIONS.TOILETS), toilet)
       toiletIds.push(docRef.id)
-      console.log(`Added toilet: ${toilet.name} with ID: ${docRef.id}`)
     }
     
-    console.log(`Successfully loaded ${toiletIds.length} toilets`)
-    
     // Add sample reviews for first few toilets
-    console.log('Loading sample reviews...')
-    
     for (let i = 0; i < Math.min(3, toiletIds.length); i++) {
       for (const review of sampleReviews) {
         const reviewData = { ...review, toiletId: toiletIds[i] }
@@ -38,7 +59,6 @@ export async function loadSampleToilets() {
       }
     }
     
-    console.log('Sample data loaded successfully!')
     return toiletIds
     
   } catch (error) {

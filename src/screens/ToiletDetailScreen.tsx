@@ -132,19 +132,19 @@ export default function ToiletDetailScreen() {
             <YStack space="$2">
               <FeatureItem 
                 label="Доступно для инвалидов" 
-                available={toilet.features.isAccessible} 
+                available={toilet.features?.isAccessible || false} 
               />
               <FeatureItem 
                 label="Пеленальный столик" 
-                available={toilet.features.hasBabyChanging} 
+                available={toilet.features?.hasBabyChanging || false} 
               />
               <FeatureItem 
                 label="Место для омовения" 
-                available={toilet.features.hasAblution} 
+                available={toilet.features?.hasAblution || false} 
               />
               <FeatureItem 
                 label="Бесплатно" 
-                available={toilet.features.isFree} 
+                available={toilet.features?.isFree || false} 
               />
             </YStack>
           </Card.Footer>
