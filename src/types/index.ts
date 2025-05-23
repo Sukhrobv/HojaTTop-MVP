@@ -61,3 +61,15 @@ export interface Toilet {
   export interface LocationWithDistance extends Toilet {
     distance: number  // distance from user in meters
   }
+
+  // Data loading states
+  export type DataSource = 'network' | 'cache' | 'none'
+  
+  export interface DataState<T> {
+    data: T | null
+    loading: boolean
+    error: string | null
+    source: DataSource
+    lastUpdated: number | null
+    isStale: boolean // True if data is from cache and might be outdated
+  }

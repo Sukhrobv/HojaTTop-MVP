@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { YStack, XStack, Text, View, Spinner } from 'tamagui'
 import { Pressable, ScrollView } from 'react-native'
 import { StatusBar } from 'expo-status-bar'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useNavigation } from '@react-navigation/native'
 import { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import { RootStackParamList } from '@/navigation'
@@ -9,14 +10,16 @@ import { useNearbyToilets } from '@/hooks/useNearbyToilets'
 import { getCurrentLocation, formatDistance, getMapRegion } from '@/services/location'
 import { Coordinates } from '@/types'
 import ToiletMapNative from '@components/ToiletMapNative'
+import DataStatusBanner from '@components/DataStatusBanner'
 
-const FilterIcon = () => <Text fontSize={20}>🔍</Text>
-const LocationIcon = () => <Text fontSize={20}>📍</Text>
+const FilterIcon = () => <Text fontSize={18}>🔍</Text>
+const LocationIcon = () => <Text fontSize={18}>📍</Text>
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Map'>
 
 export default function MapScreen() {
   const navigation = useNavigation<NavigationProp>()
+  const insets = useSafeAreaInsets()
   const [location, setLocation] = useState<Coordinates | null>(null)
   const [locationLoading, setLocationLoading] = useState(false)
   const [showToiletsList, setShowToiletsList] = useState(false)
@@ -25,7 +28,12 @@ export default function MapScreen() {
     filteredToilets, 
     loading: toiletsLoading, 
     error,
-    refresh 
+    refresh,
+    forceRefresh,
+    dataSource,
+    isStale,
+    lastUpdated,
+    cacheInfo
   } = useNearbyToilets(location, 50) // 50km = show all toilets
 
   const handleToiletPress = (toiletId: string) => {
@@ -42,6 +50,8 @@ export default function MapScreen() {
       const currentLocation = await getCurrentLocation()
       if (currentLocation) {
         setLocation(currentLocation)
+        // Force refresh when getting location to get updated nearby toilets
+        await forceRefresh()
       }
     } finally {
       setLocationLoading(false)
@@ -54,10 +64,10 @@ export default function MapScreen() {
     <YStack flex={1} backgroundColor="$background">
       <StatusBar style="light" />
       
-      {/* Header - lower padding */}
+      {/* Header with safe area */}
       <XStack 
         backgroundColor="#4ECDC4" 
-        paddingTop="$3" 
+        paddingTop={insets.top + 12} // Safe area + padding
         paddingBottom="$3" 
         paddingHorizontal="$4"
         alignItems="center"
@@ -75,6 +85,16 @@ export default function MapScreen() {
           </Pressable>
         </XStack>
       </XStack>
+
+      {/* Data Status Banner */}
+      <DataStatusBanner
+        dataSource={dataSource}
+        isStale={isStale}
+        lastUpdated={lastUpdated}
+        toiletsCount={cacheInfo?.toiletsCount || filteredToilets.length}
+        onRefresh={forceRefresh}
+        loading={toiletsLoading}
+      />
 
       {/* Map Container */}
       <View flex={1} position="relative">
@@ -108,6 +128,11 @@ export default function MapScreen() {
               backgroundColor: 'rgba(255, 255, 255, 0.9)',
               borderRadius: 8,
               padding: 12,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 3.84,
+              elevation: 3,
             }}>
               <Text fontSize={12} fontWeight="bold" marginBottom="$2">Легенда:</Text>
               <XStack alignItems="center" marginBottom="$1">
@@ -130,6 +155,8 @@ export default function MapScreen() {
                   right: 0,
                   maxHeight: 200,
                   backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                  borderTopLeftRadius: 16,
+                  borderTopRightRadius: 16,
                 }}
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -165,6 +192,9 @@ export default function MapScreen() {
                           ⭐ {toilet.rating.toFixed(1)} ({toilet.reviewCount})
                         </Text>
                       </XStack>
+                      <Text fontSize={11} color={toilet.features.isFree ? 'green' : '#FF6B6B'} marginTop="$1">
+                        {toilet.features.isFree ? 'Бесплатно' : 'Платно'}
+                      </Text>
                     </Pressable>
                   ))}
                 </XStack>
@@ -207,10 +237,20 @@ export default function MapScreen() {
           borderRadius: 20,
           paddingHorizontal: 12,
           paddingVertical: 6,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 3.84,
+          elevation: 3,
         }}>
           <Text color="white" fontSize={12} fontWeight="bold">
             Найдено: {filteredToilets.length} туалетов
           </Text>
+          {dataSource === 'cache' && (
+            <Text color="white" fontSize={10} opacity={0.9}>
+              Офлайн данные
+            </Text>
+          )}
         </View>
       </View>
     </YStack>

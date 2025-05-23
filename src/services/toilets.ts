@@ -1,4 +1,4 @@
-// Service for managing toilet data
+// Service for managing toilet data with caching support
 import { 
   collection, 
   getDocs, 
@@ -6,18 +6,36 @@ import {
   getDoc, 
   addDoc, 
   updateDoc,
-  query,
-  where,
-  orderBy,
-  limit 
 } from 'firebase/firestore'
 import { db, COLLECTIONS } from '@/services/firebase'
-import { Toilet, LocationWithDistance, Coordinates, Filters } from '@/types'
+import { Toilet, LocationWithDistance, Coordinates, Filters, DataSource } from '@/types'
 import { calculateDistance } from '@/services/location'
+import { ToiletCacheService } from '@/services/cache'
 
-// Get all toilets from Firestore
-export async function getAllToilets(): Promise<Toilet[]> {
+// Get all toilets from Firestore with caching
+export async function getAllToilets(forceRefresh: boolean = false): Promise<{
+  toilets: Toilet[]
+  source: DataSource
+}> {
   try {
+    // Check cache first (unless force refresh)
+    if (!forceRefresh) {
+      const isCacheValid = await ToiletCacheService.isToiletsCacheValid()
+      
+      if (isCacheValid) {
+        const cachedToilets = await ToiletCacheService.getCachedToilets()
+        if (cachedToilets) {
+          console.log('Using cached toilets data')
+          return {
+            toilets: cachedToilets,
+            source: 'cache'
+          }
+        }
+      }
+    }
+
+    // Fetch from network
+    console.log('Fetching toilets from network')
     const toiletsSnapshot = await getDocs(collection(db, COLLECTIONS.TOILETS))
     const toilets: Toilet[] = []
     
@@ -47,42 +65,102 @@ export async function getAllToilets(): Promise<Toilet[]> {
       toilets.push(toilet)
     })
     
-    return toilets
+    // Cache the fresh data
+    await ToiletCacheService.cacheToilets(toilets)
+    
+    return {
+      toilets,
+      source: 'network'
+    }
   } catch (error) {
     console.error('Error fetching toilets:', error)
+    
+    // Fallback to cache if network fails
+    const cachedToilets = await ToiletCacheService.getCachedToilets()
+    if (cachedToilets) {
+      console.log('Network failed, using cached toilets')
+      return {
+        toilets: cachedToilets,
+        source: 'cache'
+      }
+    }
+    
     throw error
   }
 }
 
-// Get toilet by ID
-export async function getToiletById(toiletId: string): Promise<Toilet | null> {
+// Get toilet by ID with caching
+export async function getToiletById(toiletId: string, forceRefresh: boolean = false): Promise<{
+  toilet: Toilet | null
+  source: DataSource
+}> {
   try {
+    // For individual toilets, we'll get them from the cached collection first
+    if (!forceRefresh) {
+      const cachedToilets = await ToiletCacheService.getCachedToilets()
+      if (cachedToilets) {
+        const cachedToilet = cachedToilets.find(toilet => toilet.id === toiletId)
+        if (cachedToilet) {
+          return {
+            toilet: cachedToilet,
+            source: 'cache'
+          }
+        }
+      }
+    }
+
+    // Fetch from network
     const toiletDoc = await getDoc(doc(db, COLLECTIONS.TOILETS, toiletId))
     
     if (!toiletDoc.exists()) {
-      return null
+      return {
+        toilet: null,
+        source: 'network'
+      }
     }
     
-    return {
+    const toilet = {
       id: toiletDoc.id,
       ...toiletDoc.data()
     } as Toilet
+
+    return {
+      toilet,
+      source: 'network'
+    }
   } catch (error) {
     console.error('Error fetching toilet:', error)
+    
+    // Fallback to cache
+    const cachedToilets = await ToiletCacheService.getCachedToilets()
+    if (cachedToilets) {
+      const cachedToilet = cachedToilets.find(toilet => toilet.id === toiletId)
+      if (cachedToilet) {
+        return {
+          toilet: cachedToilet,
+          source: 'cache'
+        }
+      }
+    }
+    
     throw error
   }
 }
 
-// Get nearby toilets sorted by distance
+// Get nearby toilets sorted by distance with caching
 export async function getNearbyToilets(
   userLocation: Coordinates,
-  maxDistanceKm: number = 5
-): Promise<LocationWithDistance[]> {
+  maxDistanceKm: number = 5,
+  forceRefresh: boolean = false
+): Promise<{
+  toilets: LocationWithDistance[]
+  source: DataSource
+}> {
   try {
-    const allToilets = await getAllToilets()
+    const { toilets, source } = await getAllToilets(forceRefresh)
     
     // Calculate distances and filter
-    const toiletsWithDistance: LocationWithDistance[] = allToilets
+    const toiletsWithDistance: LocationWithDistance[] = toilets
       .map(toilet => {
         const distance = calculateDistance(userLocation, {
           latitude: toilet.latitude,
@@ -97,9 +175,36 @@ export async function getNearbyToilets(
       .filter(toilet => toilet.distance <= maxDistanceKm * 1000) // Filter by max distance
       .sort((a, b) => a.distance - b.distance) // Sort by distance
     
-    return toiletsWithDistance
+    return {
+      toilets: toiletsWithDistance,
+      source
+    }
   } catch (error) {
     console.error('Error fetching nearby toilets:', error)
+    throw error
+  }
+}
+
+// Get all toilets without location requirement (for map)
+export async function getAllToiletsForMap(forceRefresh: boolean = false): Promise<{
+  toilets: LocationWithDistance[]
+  source: DataSource
+}> {
+  try {
+    const { toilets, source } = await getAllToilets(forceRefresh)
+    
+    // Add distance as 0 for all toilets when no user location
+    const toiletsWithDistance: LocationWithDistance[] = toilets.map(toilet => ({
+      ...toilet,
+      distance: 0
+    }))
+    
+    return {
+      toilets: toiletsWithDistance,
+      source
+    }
+  } catch (error) {
+    console.error('Error fetching toilets for map:', error)
     throw error
   }
 }
@@ -122,8 +227,8 @@ export function applyFilters(
     // Filter by rating
     if (filters.minRating && toilet.rating < filters.minRating) return false
     
-    // Filter by distance
-    if (filters.maxDistance && toilet.distance > filters.maxDistance * 1000) return false
+    // Filter by distance (only if user location is available)
+    if (filters.maxDistance && toilet.distance > 0 && toilet.distance > filters.maxDistance * 1000) return false
     
     return true
   })
@@ -136,6 +241,13 @@ export async function addToilet(toiletData: Omit<Toilet, 'id'>): Promise<string>
       ...toiletData,
       lastUpdated: Date.now()
     })
+    
+    // Invalidate cache after adding new toilet
+    const cachedToilets = await ToiletCacheService.getCachedToilets()
+    if (cachedToilets) {
+      const newToilet: Toilet = { id: docRef.id, ...toiletData }
+      await ToiletCacheService.cacheToilets([...cachedToilets, newToilet])
+    }
     
     return docRef.id
   } catch (error) {
@@ -156,15 +268,26 @@ export async function updateToiletRating(
       reviewCount: newReviewCount,
       lastUpdated: Date.now()
     })
+
+    // Update cached data
+    const cachedToilets = await ToiletCacheService.getCachedToilets()
+    if (cachedToilets) {
+      const updatedToilets = cachedToilets.map(toilet => 
+        toilet.id === toiletId 
+          ? { ...toilet, rating: newRating, reviewCount: newReviewCount, lastUpdated: Date.now() }
+          : toilet
+      )
+      await ToiletCacheService.cacheToilets(updatedToilets)
+    }
   } catch (error) {
     console.error('Error updating toilet rating:', error)
     throw error
   }
 }
 
-// Get toilets for map display (with basic info only)
-export async function getToiletsForMap(): Promise<
-  Array<{
+// Get toilets for map display (with basic info only) with caching
+export async function getToiletsForMap(forceRefresh: boolean = false): Promise<{
+  toilets: Array<{
     id: string
     name: string
     latitude: number
@@ -172,33 +295,46 @@ export async function getToiletsForMap(): Promise<
     rating: number
     isFree: boolean
   }>
-> {
+  source: DataSource
+}> {
   try {
-    const toiletsSnapshot = await getDocs(collection(db, COLLECTIONS.TOILETS))
-    const toilets: Array<{
-      id: string
-      name: string
-      latitude: number
-      longitude: number
-      rating: number
-      isFree: boolean
-    }> = []
+    const { toilets, source } = await getAllToilets(forceRefresh)
     
-    toiletsSnapshot.forEach((doc) => {
-      const data = doc.data()
-      toilets.push({
-        id: doc.id,
-        name: data.name,
-        latitude: data.latitude,
-        longitude: data.longitude,
-        rating: data.rating || 0,
-        isFree: data.features?.isFree || false
-      })
-    })
+    const mapToilets = toilets.map(toilet => ({
+      id: toilet.id,
+      name: toilet.name,
+      latitude: toilet.latitude,
+      longitude: toilet.longitude,
+      rating: toilet.rating,
+      isFree: toilet.features.isFree
+    }))
     
-    return toilets
+    return {
+      toilets: mapToilets,
+      source
+    }
   } catch (error) {
     console.error('Error fetching toilets for map:', error)
     throw error
+  }
+}
+
+// Check network connectivity and cache status
+export async function getDataStatus(): Promise<{
+  hasCache: boolean
+  isCacheValid: boolean
+  cacheTimestamp: number | null
+  toiletsCount: number
+}> {
+  const hasCache = await ToiletCacheService.getCachedToilets() !== null
+  const isCacheValid = await ToiletCacheService.isToiletsCacheValid()
+  const cacheTimestamp = await ToiletCacheService.getToiletsCacheTimestamp()
+  const cachedToilets = await ToiletCacheService.getCachedToilets()
+  
+  return {
+    hasCache,
+    isCacheValid,
+    cacheTimestamp,
+    toiletsCount: cachedToilets?.length || 0
   }
 }
