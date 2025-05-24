@@ -1,4 +1,4 @@
-// Service for managing reviews with caching support
+// Service for managing reviews with feature counting support
 import { 
   collection, 
   getDocs, 
@@ -11,7 +11,7 @@ import {
   updateDoc
 } from 'firebase/firestore'
 import { db, COLLECTIONS } from '@/services/firebase'
-import { Review, DataSource } from '@/types'
+import { Review, DataSource, FeatureCounts } from '@/types'
 import { ReviewCacheService } from '@/services/cache'
 import { updateToiletRating } from '@/services/toilets'
 
@@ -71,7 +71,9 @@ export async function getReviewsForToilet(
         accessibility: data.accessibility || 0,
         comment: data.comment || '',
         photos: data.photos || [],
-        createdAt: data.createdAt || Date.now()
+        createdAt: data.createdAt || Date.now(),
+        // Include feature mentions if available
+        featureMentions: data.featureMentions || undefined
       }
       reviews.push(review)
     })
@@ -113,7 +115,7 @@ export async function getReviewsForToilet(
   }
 }
 
-// Add a new review
+// Add a new review with feature mentions support
 export async function addReview(reviewData: Omit<Review, 'id' | 'createdAt'>): Promise<{
   reviewId: string
   success: boolean
@@ -177,6 +179,42 @@ async function updateToiletAverageRating(toiletId: string): Promise<void> {
   }
 }
 
+// Calculate feature counts from reviews (Yandex Taxi style)
+export async function getFeatureCounts(toiletId: string): Promise<FeatureCounts> {
+  try {
+    const { reviews } = await getReviewsForToilet(toiletId)
+    
+    const counts: FeatureCounts = {
+      accessibilityCount: 0,
+      babyChangingCount: 0,
+      ablutionCount: 0,
+      paidCount: 0,
+      freeCount: 0
+    }
+    
+    reviews.forEach(review => {
+      if (review.featureMentions) {
+        if (review.featureMentions.accessibility) counts.accessibilityCount++
+        if (review.featureMentions.babyChanging) counts.babyChangingCount++
+        if (review.featureMentions.ablution) counts.ablutionCount++
+        if (review.featureMentions.isPaid) counts.paidCount++
+        else counts.freeCount++
+      }
+    })
+    
+    return counts
+  } catch (error) {
+    console.error('Error calculating feature counts:', error)
+    return {
+      accessibilityCount: 0,
+      babyChangingCount: 0,
+      ablutionCount: 0,
+      paidCount: 0,
+      freeCount: 0
+    }
+  }
+}
+
 // Get recent reviews across all toilets (for feed/dashboard)
 export async function getRecentReviews(
   limitCount: number = 10,
@@ -225,7 +263,8 @@ export async function getRecentReviews(
         accessibility: data.accessibility || 0,
         comment: data.comment || '',
         photos: data.photos || [],
-        createdAt: data.createdAt || Date.now()
+        createdAt: data.createdAt || Date.now(),
+        featureMentions: data.featureMentions || undefined
       } as Review)
     })
     
@@ -253,7 +292,7 @@ export async function getRecentReviews(
   }
 }
 
-// Get review statistics for a toilet
+// Get review statistics for a toilet with feature counts
 export async function getReviewStats(toiletId: string): Promise<{
   averageRating: number
   totalReviews: number
