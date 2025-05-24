@@ -1,9 +1,19 @@
 import React, { useState } from 'react'
-import { ScrollView, YStack, XStack, Text, Button, TextArea, Card, Separator, Label, Spinner } from 'tamagui'
+import { ScrollView, YStack, XStack, Text, Button, TextArea, Slider, Spinner, Switch, Sheet } from 'tamagui'
 import { Alert, Pressable } from 'react-native'
 import { useNavigation, useRoute } from '@react-navigation/native'
 import { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import { RouteProp } from '@react-navigation/native'
+import { 
+  HelpCircle, 
+  ChevronDown, 
+  ChevronUp,
+  Accessibility,
+  Baby,
+  Droplets,
+  DollarSign,
+  X
+} from 'lucide-react-native'
 import { RootStackParamList } from '@/navigation'
 import { useReviews } from '@/hooks/useReviews'
 import { Review } from '@/types'
@@ -11,44 +21,116 @@ import { Review } from '@/types'
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'AddReview'>
 type RouteProps = RouteProp<RootStackParamList, 'AddReview'>
 
-const RatingSelector = ({ 
-  label, 
+// Color scheme with feature-specific colors
+const colors = {
+  primary: '#4ECDC4',
+  secondary: '#FF6B6B', 
+  success: '#4CAF50',
+  warning: '#FF9800',
+  error: '#F44336',
+  accent: '#9C27B0',
+  neutral: '#6E7AA1',
+  // Feature-specific colors
+  accessibility: '#2196F3', // Blue for accessibility
+  babyChanging: '#FF9800',  // Orange for baby changing
+  ablution: '#00BCD4',      // Light blue for ablution
+}
+
+// Star rating component
+const StarRating = ({ 
   value, 
   onChange,
-  required = false 
+  required = false
 }: { 
-  label: string
   value: number
-  onChange: (rating: number) => void
+  onChange: (value: number) => void
   required?: boolean
 }) => {
   return (
-    <YStack space="$2">
-      <Label>
-        {label}
-        {required && <Text color="red"> *</Text>}
-      </Label>
-      <XStack space="$2">
-        {[1, 2, 3, 4, 5].map((star) => (
+    <YStack space="$3" alignItems="center">
+      <XStack space="$1" flexWrap="wrap" justifyContent="center">
+        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((star) => (
           <Pressable key={star} onPress={() => onChange(star)}>
-            <Text fontSize={30}>
-              {star <= value ? '⭐' : '☆'}
+            <Text fontSize={32}>
+              {star <= value ? '★' : '☆'}
             </Text>
           </Pressable>
         ))}
       </XStack>
-      {value > 0 && (
-        <Text fontSize={12} color="$colorSubtle">
-          {value === 1 && 'Ужасно'}
-          {value === 2 && 'Плохо'}
-          {value === 3 && 'Нормально'}
-          {value === 4 && 'Хорошо'}
-          {value === 5 && 'Отлично'}
-        </Text>
-      )}
+      
+      {/* Rating value */}
+      <Text fontSize={18} fontWeight="bold" color={colors.primary}>
+        {value}/10
+      </Text>
     </YStack>
   )
 }
+
+// Feature toggle with fixed size, icon only
+const FeatureToggle = ({ 
+  icon: Icon, 
+  active, 
+  onToggle,
+  color = colors.primary
+}: { 
+  icon: any
+  active: boolean
+  onToggle: () => void
+  color?: string
+}) => (
+  <Pressable onPress={onToggle}>
+    <YStack 
+      alignItems="center" 
+      justifyContent="center"
+      width={60}
+      height={60}
+      borderRadius="$3"
+      backgroundColor={active ? color + '20' : '$backgroundPress'}
+      borderWidth={2}
+      borderColor={active ? color : '$borderColor'}
+    >
+      <Icon 
+        size={28} 
+        color={active ? color : colors.neutral} 
+      />
+    </YStack>
+  </Pressable>
+)
+
+// Help modal component
+const HelpModal = ({ 
+  open, 
+  onClose,
+  title,
+  content
+}: { 
+  open: boolean
+  onClose: () => void
+  title: string 
+  content: string[]
+}) => (
+  <Sheet modal open={open} onOpenChange={onClose} snapPoints={[50]} dismissOnSnapToBottom>
+    <Sheet.Frame>
+      <Sheet.Handle />
+      <YStack padding="$4" space="$3">
+        <XStack alignItems="center" justifyContent="space-between">
+          <Text fontSize={18} fontWeight="bold">{title}</Text>
+          <Pressable onPress={onClose}>
+            <X size={20} color={colors.neutral} />
+          </Pressable>
+        </XStack>
+        
+        <YStack space="$2">
+          {content.map((item, index) => (
+            <Text key={index} fontSize={14} color="$colorSubtle">
+              • {item}
+            </Text>
+          ))}
+        </YStack>
+      </YStack>
+    </Sheet.Frame>
+  </Sheet>
+)
 
 export default function AddReviewScreen() {
   const navigation = useNavigation<NavigationProp>()
@@ -57,17 +139,27 @@ export default function AddReviewScreen() {
 
   const { addNewReview } = useReviews(toiletId)
 
-  // Form state
+  // Form state (using 10-point scale, only one rating)
   const [rating, setRating] = useState(0)
-  const [cleanliness, setCleanliness] = useState(0)
-  const [accessibility, setAccessibility] = useState(0)
   const [comment, setComment] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  
+  // Feature toggles (like Yandex Taxi)
+  const [hasAccessibility, setHasAccessibility] = useState(false)
+  const [hasBabyChanging, setHasBabyChanging] = useState(false)
+  const [hasAblution, setHasAblution] = useState(false)
+  
+  // Payment status
+  const [isPaid, setIsPaid] = useState(false)
+  
+  // Help modals
+  const [showRatingHelp, setShowRatingHelp] = useState(false)
+  const [showFeaturesHelp, setShowFeaturesHelp] = useState(false)
 
   const handleSubmit = async () => {
     // Validation
     if (rating === 0) {
-      Alert.alert('Ошибка', 'Пожалуйста, поставьте общую оценку')
+      Alert.alert('Ошибка', 'Пожалуйста, поставьте оценку')
       return
     }
 
@@ -79,15 +171,30 @@ export default function AddReviewScreen() {
     setSubmitting(true)
 
     try {
-      const reviewData: Omit<Review, 'id' | 'createdAt'> = {
+      // Convert 10-point scale back to 5-point for database compatibility
+      const reviewData: Omit<Review, 'id' | 'createdAt'> & {
+        featureMentions?: {
+          accessibility: boolean
+          babyChanging: boolean
+          ablution: boolean
+          isPaid: boolean
+        }
+      } = {
         toiletId,
         userId: 'anonymous', // TODO: Add proper user management
         userName: 'Анонимный пользователь',
-        rating,
-        cleanliness,
-        accessibility,
+        rating: rating / 2, // Convert 10-point to 5-point
+        cleanliness: rating / 2, // Use same rating
+        accessibility: rating / 2, // Use same rating
         comment: comment.trim(),
-        photos: [] // TODO: Add photo upload functionality
+        photos: [], // TODO: Add photo upload functionality
+        // Add feature mentions for counting
+        featureMentions: {
+          accessibility: hasAccessibility,
+          babyChanging: hasBabyChanging,
+          ablution: hasAblution,
+          isPaid: isPaid
+        }
       }
 
       const success = await addNewReview(reviewData)
@@ -128,154 +235,115 @@ export default function AddReviewScreen() {
 
   return (
     <ScrollView flex={1} backgroundColor="$background">
-      <YStack padding="$4" space="$4">
-        {/* Rating Card */}
-        <Card elevate bordered>
-          <Card.Header>
+      <YStack paddingHorizontal="$2" paddingVertical="$3" space="$3">
+        
+        {/* Rating Section */}
+        <YStack 
+          backgroundColor="$background" 
+          borderRadius="$3" 
+          padding="$4"
+          borderWidth={1}
+          borderColor="$borderColor"
+          space="$3"
+        >
+          <XStack alignItems="center" justifyContent="space-between">
             <Text fontSize={18} fontWeight="bold">
               Оценка туалета
             </Text>
-            <Text fontSize={14} color="$colorSubtle" marginTop="$1">
-              Поставьте оценки по разным критериям
-            </Text>
-          </Card.Header>
-          
-          <Separator />
-          
-          <Card.Footer padded>
-            <YStack space="$4">
-              <RatingSelector
-                label="Общая оценка"
-                value={rating}
-                onChange={setRating}
-                required={true}
-              />
-              
-              <RatingSelector
-                label="Чистота"
-                value={cleanliness}
-                onChange={setCleanliness}
-              />
-              
-              <RatingSelector
-                label="Доступность"
-                value={accessibility}
-                onChange={setAccessibility}
-              />
-            </YStack>
-          </Card.Footer>
-        </Card>
-
-        {/* Comment Card */}
-        <Card elevate bordered>
-          <Card.Header>
-            <Text fontSize={18} fontWeight="bold">
-              Комментарий
-            </Text>
-            <Text fontSize={14} color="$colorSubtle" marginTop="$1">
-              Расскажите о своем опыте (необязательно)
-            </Text>
-          </Card.Header>
-          
-          <Separator />
-          
-          <Card.Footer padded>
-            <YStack space="$3">
-              <TextArea
-                placeholder="Поделитесь вашим опытом: что понравилось, что можно улучшить..."
-                value={comment}
-                onChangeText={setComment}
-                numberOfLines={4}
-                minHeight={100}
-                maxLength={500}
-                backgroundColor="$backgroundFocus"
-                borderColor="$borderColor"
-                borderWidth={1}
-                borderRadius="$2"
-                padding="$3"
-              />
-              <XStack justifyContent="space-between" alignItems="center">
-                <Text fontSize={12} color="$colorSubtle">
-                  Максимум 500 символов
-                </Text>
-                <Text fontSize={12} color={commentLength > 450 ? 'red' : '$colorSubtle'}>
-                  {commentLength}/500
-                </Text>
-              </XStack>
-            </YStack>
-          </Card.Footer>
-        </Card>
-
-        {/* Photo Upload (placeholder) */}
-        <Card elevate bordered>
-          <Card.Header>
-            <Text fontSize={18} fontWeight="bold">
-              Фотографии
-            </Text>
-            <Text fontSize={14} color="$colorSubtle" marginTop="$1">
-              Добавьте фото для других пользователей
-            </Text>
-          </Card.Header>
-          
-          <Separator />
-          
-          <Card.Footer padded>
-            <Pressable
-              onPress={() => Alert.alert('Скоро', 'Загрузка фото будет добавлена в следующих версиях')}
-              style={{
-                backgroundColor: '#F5F5F5',
-                borderRadius: 8,
-                padding: 20,
-                alignItems: 'center',
-                borderWidth: 2,
-                borderColor: '#E0E0E0',
-                borderStyle: 'dashed',
-              }}
-            >
-              <Text fontSize={40} marginBottom="$2">📷</Text>
-              <Text color="$colorSubtle">Добавить фото</Text>
-              <Text color="$colorSubtle" fontSize={12} marginTop="$1">
-                Скоро будет доступно
-              </Text>
+            <Pressable onPress={() => setShowRatingHelp(true)}>
+              <HelpCircle size={20} color={colors.neutral} />
             </Pressable>
-          </Card.Footer>
-        </Card>
+          </XStack>
+          
+          <StarRating
+            value={rating}
+            onChange={setRating}
+            required={true}
+          />
+        </YStack>
 
-        {/* Tips Card */}
-        <Card elevate bordered backgroundColor="$backgroundHover">
-          <Card.Header>
-            <Text fontSize={16} fontWeight="bold">
-              💡 Советы для хорошего отзыва
+        {/* Features Section */}
+        <YStack 
+          backgroundColor="$background" 
+          borderRadius="$3" 
+          padding="$4"
+          borderWidth={1}
+          borderColor="$borderColor"
+          space="$3"
+        >
+          <XStack alignItems="center" justifyContent="space-between">
+            <Text fontSize={18} fontWeight="bold">
+              Удобства
             </Text>
-          </Card.Header>
+            <Pressable onPress={() => setShowFeaturesHelp(true)}>
+              <HelpCircle size={20} color={colors.neutral} />
+            </Pressable>
+          </XStack>
           
-          <Separator />
+          <XStack space="$3" justifyContent="center">
+            <FeatureToggle
+              icon={Accessibility}
+              active={hasAccessibility}
+              onToggle={() => setHasAccessibility(!hasAccessibility)}
+              color={colors.accessibility}
+            />
+            <FeatureToggle
+              icon={Baby}
+              active={hasBabyChanging}
+              onToggle={() => setHasBabyChanging(!hasBabyChanging)}
+              color={colors.babyChanging}
+            />
+            <FeatureToggle
+              icon={Droplets}
+              active={hasAblution}
+              onToggle={() => setHasAblution(!hasAblution)}
+              color={colors.ablution}
+            />
+          </XStack>
+        </YStack>
+
+        {/* Payment Status */}
+        <YStack 
+          backgroundColor="$background" 
+          borderRadius="$3" 
+          padding="$4"
+          borderWidth={1}
+          borderColor="$borderColor"
+          space="$3"
+        >
+          <Text fontSize={18} fontWeight="bold">
+            Стоимость
+          </Text>
           
-          <Card.Footer padded>
-            <YStack space="$2">
-              <Text fontSize={12} color="$colorSubtle">
-                • Будьте честными и объективными
+          <XStack alignItems="center" justifyContent="space-between">
+            <XStack alignItems="center" space="$2">
+              <DollarSign size={20} color={isPaid ? colors.error : colors.success} />
+              <Text fontSize={16}>
+                {isPaid ? 'Платный' : 'Бесплатный'}
               </Text>
-              <Text fontSize={12} color="$colorSubtle">
-                • Упомяните состояние чистоты
-              </Text>
-              <Text fontSize={12} color="$colorSubtle">
-                • Отметьте удобства для людей с ограниченными возможностями
-              </Text>
-              <Text fontSize={12} color="$colorSubtle">
-                • Укажите время посещения если важно
-              </Text>
-            </YStack>
-          </Card.Footer>
-        </Card>
+            </XStack>
+            <Switch
+              size="$4"
+              checked={isPaid}
+              onCheckedChange={setIsPaid}
+              backgroundColor={isPaid ? colors.error + '40' : colors.success + '40'}
+            >
+              <Switch.Thumb 
+                animation="bouncy" 
+                backgroundColor={isPaid ? colors.error : colors.success}
+              />
+            </Switch>
+          </XStack>
+        </YStack>
 
         {/* Submit Button */}
         <Button 
           size="$5" 
-          backgroundColor={isFormValid ? "#4ECDC4" : "$backgroundPress"}
-          pressStyle={{ backgroundColor: isFormValid ? '#3BA99C' : '$backgroundPress' }}
+          backgroundColor={isFormValid ? colors.secondary : "$backgroundPress"}
+          pressStyle={{ backgroundColor: isFormValid ? '#E55555' : '$backgroundPress' }}
           onPress={handleSubmit}
           disabled={!isFormValid || submitting}
+          borderRadius="$3"
         >
           {submitting ? (
             <XStack alignItems="center" space="$2">
@@ -290,7 +358,73 @@ export default function AddReviewScreen() {
             </Text>
           )}
         </Button>
+
+        {/* Comment Section */}
+        <YStack 
+          backgroundColor="$background" 
+          borderRadius="$3" 
+          padding="$4"
+          borderWidth={1}
+          borderColor="$borderColor"
+          space="$3"
+        >
+          <Text fontSize={18} fontWeight="bold">
+            Комментарий (необязательно)
+          </Text>
+          
+          <YStack space="$2">
+            <TextArea
+              placeholder="Поделитесь вашим опытом: что понравилось, что можно улучшить..."
+              value={comment}
+              onChangeText={setComment}
+              numberOfLines={4}
+              minHeight={120}
+              maxLength={500}
+              backgroundColor="$backgroundFocus"
+              borderColor="$borderColor"
+              borderWidth={1}
+              borderRadius="$3"
+              padding="$3"
+              fontSize={14}
+            />
+            <XStack justifyContent="space-between" alignItems="center">
+              <Text fontSize={12} color="$colorSubtle">
+                Расскажите подробнее о вашем опыте
+              </Text>
+              <Text fontSize={12} color={commentLength > 450 ? colors.error : '$colorSubtle'}>
+                {commentLength}/500
+              </Text>
+            </XStack>
+          </YStack>
+        </YStack>
       </YStack>
+
+      {/* Help Modals */}
+      <HelpModal
+        open={showRatingHelp}
+        onClose={() => setShowRatingHelp(false)}
+        title="Как оценивать?"
+        content={[
+          "Поставьте оценку от 1 до 10 звезд",
+          "1-2 звезды: Ужасное состояние",
+          "3-4 звезды: Плохое состояние", 
+          "5-6 звезд: Нормальное состояние",
+          "7-8 звезд: Хорошее состояние",
+          "9-10 звезд: Отличное состояние"
+        ]}
+      />
+
+      <HelpModal
+        open={showFeaturesHelp}
+        onClose={() => setShowFeaturesHelp(false)}
+        title="Про удобства"
+        content={[
+          "Отметьте, какие удобства есть в туалете",
+          "Доступность: пандусы, широкие двери, поручни",
+          "Пеленальный столик: для смены подгузников",
+          "Омовение: специальные условия для ритуального омовения"
+        ]}
+      />
     </ScrollView>
   )
 }
