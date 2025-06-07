@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { ScrollView, YStack, XStack, Text, Button, TextArea, Slider, Spinner, Switch, Sheet } from 'tamagui'
+import { ScrollView, YStack, XStack, Text, Button, TextArea, Spinner, Switch, Sheet } from 'tamagui'
 import { Alert, Pressable } from 'react-native'
 import { useNavigation, useRoute } from '@react-navigation/native'
 import { NativeStackNavigationProp } from '@react-navigation/native-stack'
@@ -17,11 +17,12 @@ import {
 import { RootStackParamList } from '@/navigation'
 import { useReviews } from '@/hooks/useReviews'
 import { Review } from '@/types'
+import StarSliderRating from '@components/StarSliderRating'
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'AddReview'>
 type RouteProps = RouteProp<RootStackParamList, 'AddReview'>
 
-// Color scheme with feature-specific colors
+// Color scheme with UNIFIED feature-specific colors
 const colors = {
   primary: '#4ECDC4',
   secondary: '#FF6B6B', 
@@ -30,72 +31,56 @@ const colors = {
   error: '#F44336',
   accent: '#9C27B0',
   neutral: '#6E7AA1',
-  // Feature-specific colors
+  // UNIFIED feature-specific colors (same everywhere)
   accessibility: '#2196F3', // Blue for accessibility
   babyChanging: '#FF9800',  // Orange for baby changing
   ablution: '#00BCD4',      // Light blue for ablution
 }
 
-// Star rating component
-const StarRating = ({ 
-  value, 
-  onChange,
-  required = false
-}: { 
-  value: number
-  onChange: (value: number) => void
-  required?: boolean
-}) => {
-  return (
-    <YStack space="$3" alignItems="center">
-      <XStack space="$1" flexWrap="wrap" justifyContent="center">
-        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((star) => (
-          <Pressable key={star} onPress={() => onChange(star)}>
-            <Text fontSize={32}>
-              {star <= value ? '★' : '☆'}
-            </Text>
-          </Pressable>
-        ))}
-      </XStack>
-      
-      {/* Rating value */}
-      <Text fontSize={18} fontWeight="bold" color={colors.primary}>
-        {value}/10
-      </Text>
-    </YStack>
-  )
-}
-
-// Feature toggle with fixed size, icon only
+// Feature toggle with fixed size, icon only, feature-specific colors
 const FeatureToggle = ({ 
   icon: Icon, 
   active, 
   onToggle,
-  color = colors.primary
+  type = 'default'
 }: { 
   icon: any
   active: boolean
   onToggle: () => void
-  color?: string
-}) => (
-  <Pressable onPress={onToggle}>
-    <YStack 
-      alignItems="center" 
-      justifyContent="center"
-      width={60}
-      height={60}
-      borderRadius="$3"
-      backgroundColor={active ? color + '20' : '$backgroundPress'}
-      borderWidth={2}
-      borderColor={active ? color : '$borderColor'}
-    >
-      <Icon 
-        size={28} 
-        color={active ? color : colors.neutral} 
-      />
-    </YStack>
-  </Pressable>
-)
+  type?: 'accessibility' | 'babyChanging' | 'ablution' | 'default'
+}) => {
+  // Get feature-specific color
+  const getFeatureColor = () => {
+    switch (type) {
+      case 'accessibility': return colors.accessibility
+      case 'babyChanging': return colors.babyChanging
+      case 'ablution': return colors.ablution
+      default: return colors.primary
+    }
+  }
+
+  const featureColor = getFeatureColor()
+
+  return (
+    <Pressable onPress={onToggle}>
+      <YStack 
+        alignItems="center" 
+        justifyContent="center"
+        width={60}
+        height={60}
+        borderRadius="$3"
+        backgroundColor={active ? featureColor + '20' : '$backgroundPress'}
+        borderWidth={2}
+        borderColor={active ? featureColor : '$borderColor'}
+      >
+        <Icon 
+          size={28} 
+          color={active ? featureColor : colors.neutral} 
+        />
+      </YStack>
+    </Pressable>
+  )
+}
 
 // Help modal component
 const HelpModal = ({ 
@@ -237,7 +222,7 @@ export default function AddReviewScreen() {
     <ScrollView flex={1} backgroundColor="$background">
       <YStack paddingHorizontal="$2" paddingVertical="$3" space="$3">
         
-        {/* Rating Section */}
+        {/* Rating Section - UPDATED: Using SliderStarRating */}
         <YStack 
           backgroundColor="$background" 
           borderRadius="$3" 
@@ -255,14 +240,15 @@ export default function AddReviewScreen() {
             </Pressable>
           </XStack>
           
-          <StarRating
+          <StarSliderRating
             value={rating}
             onChange={setRating}
-            required={true}
+            maxStars={10}
+            starSize={28}
           />
         </YStack>
 
-        {/* Features Section */}
+        {/* Features Section - UPDATED: Feature-specific colors */}
         <YStack 
           backgroundColor="$background" 
           borderRadius="$3" 
@@ -285,19 +271,19 @@ export default function AddReviewScreen() {
               icon={Accessibility}
               active={hasAccessibility}
               onToggle={() => setHasAccessibility(!hasAccessibility)}
-              color={colors.accessibility}
+              type="accessibility"
             />
             <FeatureToggle
               icon={Baby}
               active={hasBabyChanging}
               onToggle={() => setHasBabyChanging(!hasBabyChanging)}
-              color={colors.babyChanging}
+              type="babyChanging"
             />
             <FeatureToggle
               icon={Droplets}
               active={hasAblution}
               onToggle={() => setHasAblution(!hasAblution)}
-              color={colors.ablution}
+              type="ablution"
             />
           </XStack>
         </YStack>
@@ -410,7 +396,8 @@ export default function AddReviewScreen() {
           "3-4 звезды: Плохое состояние", 
           "5-6 звезд: Нормальное состояние",
           "7-8 звезд: Хорошее состояние",
-          "9-10 звезд: Отличное состояние"
+          "9-10 звезд: Отличное состояние",
+          "Можно нажимать на звездочки или перетаскивать"
         ]}
       />
 

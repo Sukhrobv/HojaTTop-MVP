@@ -11,7 +11,9 @@ import {
   Clock,
   ChevronDown,
   ChevronUp,
-  Camera
+  Camera,
+  Star,
+  MessageSquare
 } from 'lucide-react-native'
 import { Review } from '@/types'
 
@@ -23,7 +25,16 @@ const colors = {
   warning: '#FF9800',
   error: '#F44336',
   accent: '#9C27B0',
-  neutral: '#6E7AA1'
+  neutral: '#6E7AA1',
+  // Star rating colors
+  starGold: '#FFD700',
+  starFilled: '#FFA500',
+  // GitHub-style discussion color
+  discussionPurple: '#8B5CF6',
+  // UNIFIED feature-specific colors (same everywhere)
+  accessibility: '#2196F3', // Blue for accessibility
+  babyChanging: '#FF9800',  // Orange for baby changing
+  ablution: '#00BCD4',      // Light blue for ablution
 }
 
 // Legacy rating stars component for backward compatibility
@@ -110,47 +121,76 @@ export const ProgressRating = ({
   )
 }
 
-// Feature counter component
+// Feature counter component (UPDATED: circular with badge number in corner)
 export const FeatureCounter = ({ 
   icon: Icon, 
-  label, 
-  count 
+  count,
+  type = 'default'
 }: { 
   icon: any
-  label: string
   count: number
-}) => (
-  <XStack 
-    alignItems="center" 
-    space="$2" 
-    paddingHorizontal="$3"
-    paddingVertical="$2"
-    backgroundColor={count > 0 ? colors.primary + '20' : '$backgroundPress'}
-    borderRadius="$6"
-    borderWidth={1}
-    borderColor={count > 0 ? colors.primary + '40' : '$borderColor'}
-  >
-    <Icon 
-      size={16} 
-      color={count > 0 ? colors.primary : colors.neutral} 
-    />
-    <Text 
-      fontSize={14} 
-      color={count > 0 ? colors.primary : colors.neutral}
-      fontWeight={count > 0 ? '600' : '400'}
+  type?: 'accessibility' | 'babyChanging' | 'ablution' | 'default'
+}) => {
+  // Get feature-specific color
+  const getFeatureColor = () => {
+    switch (type) {
+      case 'accessibility': return colors.accessibility
+      case 'babyChanging': return colors.babyChanging
+      case 'ablution': return colors.ablution
+      default: return colors.primary
+    }
+  }
+
+  const featureColor = getFeatureColor()
+  const isActive = count > 0
+
+  return (
+    <YStack 
+      alignItems="center" 
+      justifyContent="center"
+      width={60}
+      height={60}
+      backgroundColor={isActive ? featureColor + '20' : '$backgroundPress'}
+      borderRadius={30} // Fully circular
+      borderWidth={2}
+      borderColor={isActive ? featureColor + '40' : '$borderColor'}
+      position="relative"
     >
-      {label}
-    </Text>
-    <Text 
-      fontSize={14} 
-      fontWeight="600" 
-      color={count > 0 ? colors.primary : colors.neutral}
-    >
-      ({count})
-    </Text>
-  </XStack>
-)
-export const CompactRating = ({ 
+      <Icon 
+        size={24} 
+        color={isActive ? featureColor : colors.neutral} 
+      />
+      
+      {/* Badge with count in corner */}
+      {isActive && (
+        <YStack
+          position="absolute"
+          top={-5}
+          right={-5}
+          width={20}
+          height={20}
+          borderRadius={10}
+          backgroundColor={featureColor}
+          alignItems="center"
+          justifyContent="center"
+          borderWidth={2}
+          borderColor="white"
+        >
+          <Text 
+            fontSize={10} 
+            fontWeight="bold" 
+            color="white"
+          >
+            {count}
+          </Text>
+        </YStack>
+      )}
+    </YStack>
+  )
+}
+
+// NEW: Compact horizontal rating display (UPDATED: centered, GitHub discussion icon, gold stars)
+export const CompactRatingDisplay = ({ 
   rating,
   reviewCount = 0,
   size = 'normal'
@@ -159,64 +199,154 @@ export const CompactRating = ({
   reviewCount?: number
   size?: 'small' | 'normal' | 'large'
 }) => {
-  const fontSize = size === 'small' ? 16 : size === 'large' ? 28 : 20
-  const textSize = size === 'small' ? 12 : size === 'large' ? 16 : 14
+  const ratingValue = (rating * 2).toFixed(1) // Convert 5-point to 10-point scale
+  
+  // Size variations
+  const sizes = {
+    small: { text: 14, icon: 16, spacing: '$2' },
+    normal: { text: 18, icon: 20, spacing: '$3' },
+    large: { text: 24, icon: 28, spacing: '$4' }
+  }
+  
+  const currentSize = sizes[size]
 
   return (
-    <XStack alignItems="center" space="$2">
-      <Text fontSize={fontSize} fontWeight="bold" color={colors.primary}>
-        {(rating * 2).toFixed(1)}
-      </Text>
-      <Text fontSize={textSize} color="$colorSubtle">/10</Text>
-      {reviewCount > 0 && (
-        <Text fontSize={textSize} color="$colorSubtle">
-          ({reviewCount})
+    <XStack alignItems="center" justifyContent="center" space={currentSize.spacing}>
+      {/* Star with rating */}
+      <XStack alignItems="center" space="$1">
+        <Star 
+          size={currentSize.icon} 
+          color={colors.starFilled} 
+          fill={colors.starGold}
+        />
+        <Text 
+          fontSize={currentSize.text} 
+          fontWeight="bold" 
+          color={colors.primary}
+        >
+          {ratingValue}
         </Text>
+        <Text 
+          fontSize={currentSize.text - 2} 
+          color="$colorSubtle"
+        >
+          /10
+        </Text>
+      </XStack>
+
+      {/* Reviews count with GitHub discussion icon */}
+      {reviewCount > 0 && (
+        <XStack alignItems="center" space="$1">
+          <MessageSquare 
+            size={currentSize.icon - 2} 
+            color={colors.discussionPurple} 
+          />
+          <Text 
+            fontSize={currentSize.text - 2} 
+            color="$colorSubtle"
+          >
+            {reviewCount}
+          </Text>
+        </XStack>
       )}
     </XStack>
   )
 }
 
-// Feature icon with modern design
+// UPDATED: More compact rating component (UPDATED: COMPLETELY remove /10 and review count)
+export const CompactRating = ({ 
+  rating,
+  reviewCount = 0,
+  size = 'normal',
+  showIcon = true
+}: { 
+  rating: number
+  reviewCount?: number
+  size?: 'small' | 'normal' | 'large'
+  showIcon?: boolean
+}) => {
+  const ratingValue = (rating * 2).toFixed(1) // Convert to 10-point scale
+  
+  const sizes = {
+    small: { text: 12, icon: 14 },
+    normal: { text: 14, icon: 16 },
+    large: { text: 16, icon: 18 }
+  }
+  
+  const currentSize = sizes[size]
+
+  return (
+    <XStack alignItems="center">
+      {showIcon && (
+        <Star 
+          size={currentSize.icon} 
+          color={colors.starFilled}
+          fill={colors.starGold}
+        />
+      )}
+      <Text fontSize={currentSize.text} fontWeight="bold" color={colors.primary} marginLeft={showIcon ? "$1" : 0}>
+        {ratingValue}
+      </Text>
+    </XStack>
+  )
+}
+
+// Feature icon with modern circular design (GitHub style)
 export const FeatureTag = ({ 
   icon: Icon, 
   label, 
   available = false,
-  compact = false 
+  compact = false,
+  type = 'default' 
 }: { 
   icon: any
   label: string
   available?: boolean
   compact?: boolean
-}) => (
-  <XStack 
-    alignItems="center" 
-    justifyContent="center"
-    width={compact ? 40 : "auto"}
-    height={compact ? 40 : "auto"}
-    paddingHorizontal={label ? (compact ? "$2" : "$3") : 0}
-    paddingVertical={label ? (compact ? "$1" : "$2") : 0}
-    backgroundColor={available ? colors.success + '20' : '$backgroundPress'}
-    borderRadius="$6"
-    borderWidth={1}
-    borderColor={available ? colors.success + '40' : '$borderColor'}
-  >
-    <Icon 
-      size={compact ? 20 : 16} 
-      color={available ? colors.success : colors.neutral} 
-    />
-    {label && (
-      <Text 
-        fontSize={compact ? 12 : 14} 
-        color={available ? colors.success : colors.neutral}
-        fontWeight={available ? '600' : '400'}
-        marginLeft="$1"
-      >
-        {label}
-      </Text>
-    )}
-  </XStack>
-)
+  type?: 'accessibility' | 'babyChanging' | 'ablution' | 'default'
+}) => {
+  // Get unified feature-specific color
+  const getFeatureColor = () => {
+    switch (type) {
+      case 'accessibility': return colors.accessibility
+      case 'babyChanging': return colors.babyChanging
+      case 'ablution': return colors.ablution
+      default: return colors.success
+    }
+  }
+
+  const featureColor = getFeatureColor()
+
+  return (
+    <XStack 
+      alignItems="center" 
+      justifyContent="center"
+      width={compact ? 40 : "auto"}
+      height={compact ? 40 : "auto"}
+      paddingHorizontal={label ? (compact ? "$2" : "$3") : 0}
+      paddingVertical={label ? (compact ? "$1" : "$2") : 0}
+      backgroundColor={available ? featureColor + '20' : '$backgroundPress'}
+      borderRadius={compact ? 20 : "$6"} // More circular for compact
+      borderWidth={1}
+      borderColor={available ? featureColor + '40' : '$borderColor'}
+    >
+      <Icon 
+        size={compact ? 20 : 16} 
+        color={available ? featureColor : colors.neutral} 
+      />
+      {label && (
+        <Text 
+          fontSize={compact ? 12 : 14} 
+          color={available ? featureColor : colors.neutral}
+          fontWeight={available ? '600' : '400'}
+          marginLeft="$1"
+        >
+          {label}
+        </Text>
+      )}
+    </XStack>
+  )
+}
 
 // Compact review card
 export const ReviewCard = ({ 
@@ -335,7 +465,114 @@ export const ReviewCard = ({
   )
 }
 
-// Reviews list
+// NEW: GitHub-style payment status badge
+export const PaymentStatusBadge = ({ 
+  count, 
+  type 
+}: { 
+  count: number
+  type: 'free' | 'paid' 
+}) => {
+  const color = type === 'free' ? colors.success : colors.error
+  
+  return (
+    <YStack 
+      alignItems="center" 
+      justifyContent="center"
+      width={24}
+      height={24}
+      backgroundColor={color + '20'} // Transparent background
+      borderRadius={12} // Fully circular
+      borderWidth={2}
+      borderColor={color + '60'} // Bright border
+      position="relative"
+    >
+      <Text fontSize={10} fontWeight="bold" color={color}>
+        {count}
+      </Text>
+    </YStack>
+  )
+}
+
+// NEW: Review header with circular icon and badge (like feature counters)
+export const ReviewSectionHeader = ({ 
+  reviewCount = 0,
+  showError = false,
+  onRefresh,
+  loading = false
+}: { 
+  reviewCount: number
+  showError?: boolean
+  onRefresh?: () => void
+  loading?: boolean
+}) => {
+  return (
+    <XStack alignItems="center" justifyContent="space-between">
+      <XStack alignItems="center" space="$3">
+        <Text fontSize={18} fontWeight="bold">
+          Отзывы
+        </Text>
+        
+        {/* Circular icon with badge - same style as feature counters */}
+        <YStack 
+          alignItems="center" 
+          justifyContent="center"
+          width={40}
+          height={40}
+          backgroundColor={reviewCount > 0 ? colors.discussionPurple + '20' : '$backgroundPress'}
+          borderRadius={20} // Fully circular
+          borderWidth={2}
+          borderColor={reviewCount > 0 ? colors.discussionPurple + '40' : '$borderColor'}
+          position="relative"
+        >
+          <MessageSquare 
+            size={18} 
+            color={reviewCount > 0 ? colors.discussionPurple : colors.neutral} 
+          />
+          
+          {/* Badge with count in corner */}
+          {reviewCount > 0 && (
+            <YStack
+              position="absolute"
+              top={-5}
+              right={-5}
+              width={18}
+              height={18}
+              borderRadius={9}
+              backgroundColor={colors.discussionPurple}
+              alignItems="center"
+              justifyContent="center"
+              borderWidth={2}
+              borderColor="white"
+            >
+              <Text 
+                fontSize={9} 
+                fontWeight="bold" 
+                color="white"
+              >
+                {reviewCount}
+              </Text>
+            </YStack>
+          )}
+        </YStack>
+      </XStack>
+      
+      {/* Error refresh button */}
+      {showError && onRefresh && (
+        <Button
+          size="$2"
+          variant="outlined"
+          onPress={onRefresh}
+          disabled={loading}
+        >
+          <Text fontSize={12}>
+            {loading ? 'Загрузка...' : 'Обновить'}
+          </Text>
+        </Button>
+      )}
+    </XStack>
+  )
+}
 export const ReviewsList = ({ 
   reviews, 
   loading = false, 
@@ -385,6 +622,7 @@ export const ReviewsList = ({
 
   return (
     <YStack space="$2">
+      {/* Reviews - NO duplicate count display */}
       {reviews.map((review) => (
         <ReviewCard 
           key={review.id} 
@@ -397,7 +635,7 @@ export const ReviewsList = ({
   )
 }
 
-// Simplified review statistics - just main rating
+// UPDATED: Simplified review statistics - REMOVED payment stats (moved to ReviewSectionHeader)
 export const ReviewStats = ({ 
   stats,
   featureCounts
@@ -423,60 +661,25 @@ export const ReviewStats = ({
 
   return (
     <YStack space="$4">
-      {/* Main rating only */}
-      <YStack alignItems="center" space="$2">
-        <Text fontSize={48} fontWeight="bold" color={colors.primary}>
-          {(stats.averageRating * 2).toFixed(1)}
-        </Text>
-        <Text fontSize={16} color="$colorSubtle">/10</Text>
-        <Text fontSize={14} color="$colorSubtle">
-          {stats.totalReviews} отзывов
-        </Text>
-      </YStack>
-
-      {/* Feature counters (Yandex Taxi style) */}
+      {/* Feature counters - circular with badges, no title */}
       {featureCounts && (
-        <YStack space="$3">
-          <Text fontSize={16} fontWeight="bold">
-            Упоминания в отзывах
-          </Text>
-          <XStack flexWrap="wrap" gap="$2">
-            <FeatureCounter
-              icon={Accessibility}
-              label="Доступность"
-              count={featureCounts.accessibilityCount}
-            />
-            <FeatureCounter
-              icon={Baby}
-              label="Пеленальный столик"
-              count={featureCounts.babyChangingCount}
-            />
-            <FeatureCounter
-              icon={Droplets}
-              label="Омовение"
-              count={featureCounts.ablutionCount}
-            />
-          </XStack>
-        </YStack>
-      )}
-
-      {/* Payment statistics */}
-      {featureCounts && (featureCounts.paidCount > 0 || featureCounts.freeCount > 0) && (
-        <YStack space="$2">
-          <Text fontSize={16} fontWeight="bold">
-            Стоимость по отзывам
-          </Text>
-          <XStack space="$3">
-            <XStack alignItems="center" space="$2">
-              <Text fontSize={14} color={colors.success}>Бесплатно:</Text>
-              <Text fontSize={14} fontWeight="600">{featureCounts.freeCount}</Text>
-            </XStack>
-            <XStack alignItems="center" space="$2">
-              <Text fontSize={14} color={colors.error}>Платно:</Text>
-              <Text fontSize={14} fontWeight="600">{featureCounts.paidCount}</Text>
-            </XStack>
-          </XStack>
-        </YStack>
+        <XStack space="$4" justifyContent="center" alignItems="center">
+          <FeatureCounter
+            icon={Accessibility}
+            count={featureCounts.accessibilityCount}
+            type="accessibility"
+          />
+          <FeatureCounter
+            icon={Baby}
+            count={featureCounts.babyChangingCount}
+            type="babyChanging"
+          />
+          <FeatureCounter
+            icon={Droplets}
+            count={featureCounts.ablutionCount}
+            type="ablution"
+          />
+        </XStack>
       )}
     </YStack>
   )

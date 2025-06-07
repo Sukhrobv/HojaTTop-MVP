@@ -12,19 +12,20 @@ import {
   Droplets, 
   DollarSign,
   MapPin,
-  Clock
+  Clock,
+  Star
 } from 'lucide-react-native'
 import { RootStackParamList } from '@/navigation'
 import { useReviews } from '@/hooks/useReviews'
 import { getToiletById } from '@/services/toilets'
 import { getFeatureCounts } from '@/services/reviews'
 import { Toilet, FeatureCounts } from '@/types'
-import { CompactRating, ReviewsList, ReviewStats, FeatureTag } from '@components/ReviewComponents'
+import { CompactRatingDisplay, ReviewsList, ReviewStats, FeatureTag, ReviewSectionHeader, PaymentStatusBadge, FeatureCounter } from '@components/ReviewComponents'
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'ToiletDetail'>
 type RouteProps = RouteProp<RootStackParamList, 'ToiletDetail'>
 
-// Color scheme
+// UNIFIED color scheme
 const colors = {
   primary: '#4ECDC4',
   secondary: '#FF6B6B', 
@@ -32,7 +33,14 @@ const colors = {
   warning: '#FF9800',
   error: '#F44336',
   accent: '#9C27B0',
-  neutral: '#6E7AA1'
+  neutral: '#6E7AA1',
+  // Star rating colors
+  starGold: '#FFD700',
+  starFilled: '#FFA500',
+  // UNIFIED feature-specific colors (same everywhere)
+  accessibility: '#2196F3', // Blue for accessibility
+  babyChanging: '#FF9800',  // Orange for baby changing
+  ablution: '#00BCD4',      // Light blue for ablution
 }
 
 export default function ToiletDetailScreen() {
@@ -120,6 +128,40 @@ export default function ToiletDetailScreen() {
     })
   }
 
+  // LOGIC: Determine payment status by majority vote
+  const getPaymentStatus = () => {
+    if (!featureCounts) {
+      // Fallback to base data if no feature counts
+      return {
+        isFree: toilet?.features.isFree || false,
+        source: 'base'
+      }
+    }
+
+    const { paidCount, freeCount } = featureCounts
+    
+    if (freeCount === 0 && paidCount === 0) {
+      // No votes, use base data
+      return {
+        isFree: toilet?.features.isFree || false,
+        source: 'base'
+      }
+    }
+
+    // Majority vote wins
+    if (freeCount > paidCount) {
+      return { isFree: true, source: 'votes' }
+    } else if (paidCount > freeCount) {
+      return { isFree: false, source: 'votes' }
+    } else {
+      // Equal votes, use base data
+      return {
+        isFree: toilet?.features.isFree || false,
+        source: 'equal'
+      }
+    }
+  }
+
   if (toiletLoading) {
     return (
       <YStack flex={1} alignItems="center" justifyContent="center">
@@ -142,11 +184,13 @@ export default function ToiletDetailScreen() {
     )
   }
 
+  const paymentStatus = getPaymentStatus()
+
   return (
     <ScrollView flex={1} backgroundColor="$background">
       <YStack paddingHorizontal="$2" paddingVertical="$3" space="$2">
         
-        {/* Main Info */}
+        {/* MERGED: Main Info + Rating + Features */}
         <YStack 
           backgroundColor="$background" 
           borderRadius="$3" 
@@ -156,24 +200,47 @@ export default function ToiletDetailScreen() {
           space="$3"
         >
           <YStack space="$2">
+            {/* Title with rating in same line */}
             <XStack alignItems="center" justifyContent="space-between">
-              <Text fontSize={20} fontWeight="bold" flex={1}>
-                {toilet.name}
-              </Text>
+              <XStack alignItems="center" space="$2" flex={1}>
+                <Text fontSize={20} fontWeight="bold">
+                  {toilet.name}
+                </Text>
+                {/* Rating right next to title */}
+                {stats && stats.averageRating > 0 && (
+                  <XStack alignItems="center" space="$1">
+                    <Star 
+                      size={18} 
+                      color={colors.starFilled} 
+                      fill={colors.starGold}
+                    />
+                    <Text 
+                      fontSize={16} 
+                      fontWeight="bold" 
+                      color={colors.primary}
+                    >
+                      {(stats.averageRating * 2).toFixed(1)}
+                    </Text>
+                  </XStack>
+                )}
+              </XStack>
+              
+              {/* Payment status */}
               <XStack alignItems="center" space="$1">
                 <DollarSign 
                   size={16} 
-                  color={toilet.features.isFree ? colors.success : colors.error} 
+                  color={paymentStatus.isFree ? colors.success : colors.error} 
                 />
                 <Text 
                   fontSize={14} 
                   fontWeight="600"
-                  color={toilet.features.isFree ? colors.success : colors.error}
+                  color={paymentStatus.isFree ? colors.success : colors.error}
                 >
-                  {toilet.features.isFree ? 'Бесплатно' : 'Платно'}
+                  {paymentStatus.isFree ? 'Бесплатно' : 'Платно'}
                 </Text>
               </XStack>
             </XStack>
+            
             <XStack alignItems="center" space="$2">
               <MapPin size={16} color={colors.neutral} />
               <Text color="$colorSubtle" flex={1}>
@@ -188,27 +255,26 @@ export default function ToiletDetailScreen() {
             </XStack>
           </YStack>
 
-          {/* Features */}
-          <XStack space="$2" justifyContent="center">
-            <FeatureTag
-              icon={Accessibility}
-              label=""
-              available={toilet.features.isAccessible}
-              compact={true}
-            />
-            <FeatureTag
-              icon={Baby}
-              label=""
-              available={toilet.features.hasBabyChanging}
-              compact={true}
-            />
-            <FeatureTag
-              icon={Droplets}
-              label=""
-              available={toilet.features.hasAblution}
-              compact={true}
-            />
-          </XStack>
+          {/* ONLY Feature counters (no simple icons) */}
+          {featureCounts && (
+            <XStack space="$4" justifyContent="center" alignItems="center">
+              <FeatureCounter
+                icon={Accessibility}
+                count={featureCounts.accessibilityCount}
+                type="accessibility"
+              />
+              <FeatureCounter
+                icon={Baby}
+                count={featureCounts.babyChangingCount}
+                type="babyChanging"
+              />
+              <FeatureCounter
+                icon={Droplets}
+                count={featureCounts.ablutionCount}
+                type="ablution"
+              />
+            </XStack>
+          )}
 
           {/* Action Buttons */}
           <XStack space="$2">
@@ -240,7 +306,7 @@ export default function ToiletDetailScreen() {
           </XStack>
         </YStack>
 
-        {/* Rating Section */}
+        {/* Reviews Section with payment stats */}
         <YStack 
           backgroundColor="$background" 
           borderRadius="$3" 
@@ -249,41 +315,17 @@ export default function ToiletDetailScreen() {
           borderColor="$borderColor"
           space="$3"
         >
-          <Text fontSize={18} fontWeight="bold">
-            Рейтинг
-          </Text>
-          <ReviewStats 
-            stats={stats} 
-            featureCounts={featureCounts}
+          {/* UPDATED: ReviewSectionHeader with payment stats */}
+          <ReviewSectionHeader
+            reviewCount={reviews.length}
+            showError={!!reviewsError}
+            onRefresh={forceRefreshReviews}
+            loading={reviewsLoading}
+            paymentStats={featureCounts ? {
+              freeCount: featureCounts.freeCount,
+              paidCount: featureCounts.paidCount
+            } : undefined}
           />
-        </YStack>
-
-        {/* Reviews Section */}
-        <YStack 
-          backgroundColor="$background" 
-          borderRadius="$3" 
-          padding="$4"
-          borderWidth={1}
-          borderColor="$borderColor"
-          space="$3"
-        >
-          <XStack alignItems="center" justifyContent="space-between">
-            <Text fontSize={18} fontWeight="bold">
-              Отзывы ({reviews.length})
-            </Text>
-            {reviewsError && (
-              <Button
-                size="$2"
-                variant="outlined"
-                onPress={forceRefreshReviews}
-                disabled={reviewsLoading}
-              >
-                <Text fontSize={12}>
-                  {reviewsLoading ? 'Загрузка...' : 'Обновить'}
-                </Text>
-              </Button>
-            )}
-          </XStack>
           
           <ReviewsList 
             reviews={reviews}
