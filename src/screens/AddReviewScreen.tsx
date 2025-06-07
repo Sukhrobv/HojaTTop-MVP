@@ -1,6 +1,6 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { ScrollView, YStack, XStack, Text, Button, TextArea, Spinner, Switch, Sheet } from 'tamagui'
-import { Alert, Pressable } from 'react-native'
+import { Alert, Pressable, KeyboardAvoidingView, Platform } from 'react-native'
 import { useNavigation, useRoute } from '@react-navigation/native'
 import { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import { RouteProp } from '@react-navigation/native'
@@ -123,6 +123,10 @@ export default function AddReviewScreen() {
   const { toiletId } = route.params
 
   const { addNewReview } = useReviews(toiletId)
+  
+  // Refs for scrolling
+  const scrollViewRef = useRef<any>(null)
+  const commentSectionRef = useRef<any>(null)
 
   // Form state (using 10-point scale, only one rating)
   const [rating, setRating] = useState(0)
@@ -219,171 +223,207 @@ export default function AddReviewScreen() {
   const commentLength = comment.length
 
   return (
-    <ScrollView flex={1} backgroundColor="$background">
-      <YStack paddingHorizontal="$2" paddingVertical="$3" space="$3">
-        
-        {/* Rating Section - UPDATED: Using SliderStarRating */}
-        <YStack 
-          backgroundColor="$background" 
-          borderRadius="$3" 
-          padding="$4"
-          borderWidth={1}
-          borderColor="$borderColor"
-          space="$3"
-        >
-          <XStack alignItems="center" justifyContent="space-between">
-            <Text fontSize={18} fontWeight="bold">
-              Оценка туалета
-            </Text>
-            <Pressable onPress={() => setShowRatingHelp(true)}>
-              <HelpCircle size={20} color={colors.neutral} />
-            </Pressable>
-          </XStack>
+    <KeyboardAvoidingView 
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+    >
+      <ScrollView 
+        ref={scrollViewRef}
+        flex={1} 
+        backgroundColor="$background"
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+        overScrollMode="never"
+        contentContainerStyle={{ flexGrow: 1 }}
+      >
+        <YStack paddingHorizontal="$2" paddingVertical="$3" space="$3">
           
-          <StarSliderRating
-            value={rating}
-            onChange={setRating}
-            maxStars={10}
-            starSize={28}
-          />
-        </YStack>
-
-        {/* Features Section - UPDATED: Feature-specific colors */}
-        <YStack 
-          backgroundColor="$background" 
-          borderRadius="$3" 
-          padding="$4"
-          borderWidth={1}
-          borderColor="$borderColor"
-          space="$3"
-        >
-          <XStack alignItems="center" justifyContent="space-between">
-            <Text fontSize={18} fontWeight="bold">
-              Удобства
-            </Text>
-            <Pressable onPress={() => setShowFeaturesHelp(true)}>
-              <HelpCircle size={20} color={colors.neutral} />
-            </Pressable>
-          </XStack>
-          
-          <XStack space="$3" justifyContent="center">
-            <FeatureToggle
-              icon={Accessibility}
-              active={hasAccessibility}
-              onToggle={() => setHasAccessibility(!hasAccessibility)}
-              type="accessibility"
-            />
-            <FeatureToggle
-              icon={Baby}
-              active={hasBabyChanging}
-              onToggle={() => setHasBabyChanging(!hasBabyChanging)}
-              type="babyChanging"
-            />
-            <FeatureToggle
-              icon={Droplets}
-              active={hasAblution}
-              onToggle={() => setHasAblution(!hasAblution)}
-              type="ablution"
-            />
-          </XStack>
-        </YStack>
-
-        {/* Payment Status */}
-        <YStack 
-          backgroundColor="$background" 
-          borderRadius="$3" 
-          padding="$4"
-          borderWidth={1}
-          borderColor="$borderColor"
-          space="$3"
-        >
-          <Text fontSize={18} fontWeight="bold">
-            Стоимость
-          </Text>
-          
-          <XStack alignItems="center" justifyContent="space-between">
-            <XStack alignItems="center" space="$2">
-              <DollarSign size={20} color={isPaid ? colors.error : colors.success} />
-              <Text fontSize={16}>
-                {isPaid ? 'Платный' : 'Бесплатный'}
+          {/* Rating Section - UPDATED: Using SliderStarRating */}
+          <YStack 
+            backgroundColor="$background" 
+            borderRadius="$3" 
+            padding="$4"
+            borderWidth={1}
+            borderColor="$borderColor"
+            space="$3"
+          >
+            <XStack alignItems="center" justifyContent="space-between">
+              <Text fontSize={18} fontWeight="bold">
+                Оценка туалета
               </Text>
+              <Pressable onPress={() => setShowRatingHelp(true)}>
+                <HelpCircle size={20} color={colors.neutral} />
+              </Pressable>
             </XStack>
-            <Switch
-              size="$4"
-              checked={isPaid}
-              onCheckedChange={setIsPaid}
-              backgroundColor={isPaid ? colors.error + '40' : colors.success + '40'}
-            >
-              <Switch.Thumb 
-                animation="bouncy" 
-                backgroundColor={isPaid ? colors.error : colors.success}
+            
+            <StarSliderRating
+              value={rating}
+              onChange={setRating}
+              maxStars={10}
+              starSize={28}
+            />
+          </YStack>
+
+          {/* Features Section - UPDATED: Feature-specific colors */}
+          <YStack 
+            backgroundColor="$background" 
+            borderRadius="$3" 
+            padding="$4"
+            borderWidth={1}
+            borderColor="$borderColor"
+            space="$3"
+          >
+            <XStack alignItems="center" justifyContent="space-between">
+              <Text fontSize={18} fontWeight="bold">
+                Удобства
+              </Text>
+              <Pressable onPress={() => setShowFeaturesHelp(true)}>
+                <HelpCircle size={20} color={colors.neutral} />
+              </Pressable>
+            </XStack>
+            
+            <XStack space="$3" justifyContent="center">
+              <FeatureToggle
+                icon={Accessibility}
+                active={hasAccessibility}
+                onToggle={() => setHasAccessibility(!hasAccessibility)}
+                type="accessibility"
               />
-            </Switch>
-          </XStack>
-        </YStack>
-
-        {/* Submit Button */}
-        <Button 
-          size="$5" 
-          backgroundColor={isFormValid ? colors.secondary : "$backgroundPress"}
-          pressStyle={{ backgroundColor: isFormValid ? '#E55555' : '$backgroundPress' }}
-          onPress={handleSubmit}
-          disabled={!isFormValid || submitting}
-          borderRadius="$3"
-        >
-          {submitting ? (
-            <XStack alignItems="center" space="$2">
-              <Spinner size="small" color="white" />
-              <Text color="white" fontWeight="bold">
-                Отправка...
-              </Text>
-            </XStack>
-          ) : (
-            <Text color={isFormValid ? "white" : "$colorSubtle"} fontWeight="bold">
-              Отправить отзыв
-            </Text>
-          )}
-        </Button>
-
-        {/* Comment Section */}
-        <YStack 
-          backgroundColor="$background" 
-          borderRadius="$3" 
-          padding="$4"
-          borderWidth={1}
-          borderColor="$borderColor"
-          space="$3"
-        >
-          <Text fontSize={18} fontWeight="bold">
-            Комментарий (необязательно)
-          </Text>
-          
-          <YStack space="$2">
-            <TextArea
-              placeholder="Поделитесь вашим опытом: что понравилось, что можно улучшить..."
-              value={comment}
-              onChangeText={setComment}
-              numberOfLines={4}
-              minHeight={120}
-              maxLength={500}
-              backgroundColor="$backgroundFocus"
-              borderColor="$borderColor"
-              borderWidth={1}
-              borderRadius="$3"
-              padding="$3"
-              fontSize={14}
-            />
-            <XStack justifyContent="space-between" alignItems="center">
-              <Text fontSize={12} color="$colorSubtle">
-                Расскажите подробнее о вашем опыте
-              </Text>
-              <Text fontSize={12} color={commentLength > 450 ? colors.error : '$colorSubtle'}>
-                {commentLength}/500
-              </Text>
+              <FeatureToggle
+                icon={Baby}
+                active={hasBabyChanging}
+                onToggle={() => setHasBabyChanging(!hasBabyChanging)}
+                type="babyChanging"
+              />
+              <FeatureToggle
+                icon={Droplets}
+                active={hasAblution}
+                onToggle={() => setHasAblution(!hasAblution)}
+                type="ablution"
+              />
             </XStack>
           </YStack>
+
+          {/* Payment Status */}
+          <YStack 
+            backgroundColor="$background" 
+            borderRadius="$3" 
+            padding="$4"
+            borderWidth={1}
+            borderColor="$borderColor"
+            space="$3"
+          >
+            <Text fontSize={18} fontWeight="bold">
+              Стоимость
+            </Text>
+            
+            <XStack alignItems="center" justifyContent="space-between">
+              <XStack alignItems="center" space="$2">
+                <DollarSign size={20} color={isPaid ? colors.error : colors.success} />
+                <Text fontSize={16}>
+                  {isPaid ? 'Платный' : 'Бесплатный'}
+                </Text>
+              </XStack>
+              <Switch
+                size="$4"
+                checked={isPaid}
+                onCheckedChange={setIsPaid}
+                backgroundColor={isPaid ? colors.error + '40' : colors.success + '40'}
+              >
+                <Switch.Thumb 
+                  animation="bouncy" 
+                  backgroundColor={isPaid ? colors.error : colors.success}
+                />
+              </Switch>
+            </XStack>
+          </YStack>
+
+          {/* Comment Section */}
+          <YStack 
+            ref={commentSectionRef}
+            backgroundColor="$background" 
+            borderRadius="$3" 
+            padding="$4"
+            borderWidth={1}
+            borderColor="$borderColor"
+            space="$3"
+          >
+            <Text fontSize={18} fontWeight="bold">
+              Комментарий (необязательно)
+            </Text>
+            
+            <YStack space="$2">
+              <TextArea
+                placeholder="Поделитесь вашим опытом: что понравилось, что можно улучшить..."
+                value={comment}
+                onChangeText={setComment}
+                numberOfLines={4}
+                minHeight={120}
+                maxLength={500}
+                backgroundColor="$backgroundFocus"
+                borderColor="$borderColor"
+                borderWidth={1}
+                borderRadius="$3"
+                padding="$3"
+                fontSize={14}
+                // Keyboard handling improvements
+                returnKeyType="done"
+                blurOnSubmit={true}
+                textAlignVertical="top"
+                // Auto-scroll when focused
+                onFocus={() => {
+                  setTimeout(() => {
+                    commentSectionRef.current?.measureLayout?.(
+                      scrollViewRef.current,
+                      (x: number, y: number) => {
+                        scrollViewRef.current?.scrollTo({
+                          y: y - 50, // 50px offset from top
+                          animated: true
+                        })
+                      }
+                    )
+                  }, 300) // Wait for keyboard animation
+                }}
+              />
+              <XStack justifyContent="space-between" alignItems="center">
+                <Text fontSize={12} color="$colorSubtle">
+                  Расскажите подробнее о вашем опыте
+                </Text>
+                <Text fontSize={12} color={commentLength > 450 ? colors.error : '$colorSubtle'}>
+                  {commentLength}/500
+                </Text>
+              </XStack>
+            </YStack>
+          </YStack>
+
+          {/* Submit Button */}
+          <YStack paddingBottom="$4">
+            <Button 
+              size="$5" 
+              backgroundColor={isFormValid ? colors.secondary : "$backgroundPress"}
+              pressStyle={{ backgroundColor: isFormValid ? '#E55555' : '$backgroundPress' }}
+              onPress={handleSubmit}
+              disabled={!isFormValid || submitting}
+              borderRadius="$3"
+            >
+              {submitting ? (
+                <XStack alignItems="center" space="$2">
+                  <Spinner size="small" color="white" />
+                  <Text color="white" fontWeight="bold">
+                    Отправка...
+                  </Text>
+                </XStack>
+              ) : (
+                <Text color={isFormValid ? "white" : "$colorSubtle"} fontWeight="bold">
+                  Отправить отзыв
+                </Text>
+              )}
+            </Button>
+          </YStack>
         </YStack>
-      </YStack>
+      </ScrollView>
 
       {/* Help Modals */}
       <HelpModal
@@ -412,6 +452,6 @@ export default function AddReviewScreen() {
           "Омовение: специальные условия для ритуального омовения"
         ]}
       />
-    </ScrollView>
+    </KeyboardAvoidingView>
   )
 }

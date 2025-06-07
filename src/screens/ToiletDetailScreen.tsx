@@ -197,7 +197,7 @@ export default function ToiletDetailScreen() {
           padding="$4"
           borderWidth={1}
           borderColor="$borderColor"
-          space="$3"
+          space="$5"
         >
           <YStack space="$2">
             {/* Title with rating in same line */}
@@ -257,7 +257,7 @@ export default function ToiletDetailScreen() {
 
           {/* ONLY Feature counters (no simple icons) */}
           {featureCounts && (
-            <XStack space="$4" justifyContent="center" alignItems="center">
+            <XStack space="$3" justifyContent="center" alignItems="center">
               <FeatureCounter
                 icon={Accessibility}
                 count={featureCounts.accessibilityCount}
@@ -313,7 +313,7 @@ export default function ToiletDetailScreen() {
           padding="$4"
           borderWidth={1}
           borderColor="$borderColor"
-          space="$3"
+          space="$4"
         >
           {/* UPDATED: ReviewSectionHeader with payment stats */}
           <ReviewSectionHeader

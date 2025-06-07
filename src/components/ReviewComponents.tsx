@@ -465,7 +465,7 @@ export const ReviewCard = ({
   )
 }
 
-// NEW: GitHub-style payment status badge
+// NEW: Payment status badge - same style as review counter (circle with light bg + dark border + number)
 export const PaymentStatusBadge = ({ 
   count, 
   type 
@@ -479,15 +479,14 @@ export const PaymentStatusBadge = ({
     <YStack 
       alignItems="center" 
       justifyContent="center"
-      width={24}
-      height={24}
-      backgroundColor={color + '20'} // Transparent background
-      borderRadius={12} // Fully circular
+      width={32}
+      height={32}
+      backgroundColor={color + '20'} // Light background like review counter
+      borderRadius={16} // Fully circular
       borderWidth={2}
-      borderColor={color + '60'} // Bright border
-      position="relative"
+      borderColor={color + '60'} // Darker border like review counter  
     >
-      <Text fontSize={10} fontWeight="bold" color={color}>
+      <Text fontSize={12} fontWeight="bold" color={color}>
         {count}
       </Text>
     </YStack>
@@ -499,12 +498,17 @@ export const ReviewSectionHeader = ({
   reviewCount = 0,
   showError = false,
   onRefresh,
-  loading = false
+  loading = false,
+  paymentStats
 }: { 
   reviewCount: number
   showError?: boolean
   onRefresh?: () => void
   loading?: boolean
+  paymentStats?: {
+    freeCount: number
+    paidCount: number
+  }
 }) => {
   return (
     <XStack alignItems="center" justifyContent="space-between">
@@ -557,6 +561,18 @@ export const ReviewSectionHeader = ({
         </YStack>
       </XStack>
       
+      {/* Payment stats - same style as review counter */}
+      {paymentStats && (paymentStats.freeCount > 0 || paymentStats.paidCount > 0) && (
+        <XStack alignItems="center" space="$2">
+          {paymentStats.freeCount > 0 && (
+            <PaymentStatusBadge count={paymentStats.freeCount} type="free" />
+          )}
+          {paymentStats.paidCount > 0 && (
+            <PaymentStatusBadge count={paymentStats.paidCount} type="paid" />
+          )}
+        </XStack>
+      )}
+      
       {/* Error refresh button */}
       {showError && onRefresh && (
         <Button
@@ -573,6 +589,7 @@ export const ReviewSectionHeader = ({
     </XStack>
   )
 }
+
 export const ReviewsList = ({ 
   reviews, 
   loading = false, 
