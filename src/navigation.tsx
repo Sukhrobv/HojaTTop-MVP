@@ -2,11 +2,14 @@ import React from 'react'
 import { NavigationContainer } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 
-// Import screens (will be created next)
+// Import screens
 import MapScreen from '@screens/MapScreen'
 import ToiletDetailScreen from '@screens/ToiletDetailScreen'
 import AddReviewScreen from '@screens/AddReviewScreen'
 import FiltersScreen from '@screens/FiltersScreen'
+// ADD THESE TWO IMPORTS:
+import SettingsScreen from '@screens/SettingsScreen'
+import AuthScreen from '@screens/AuthScreen'
 
 // Define navigation params type
 export type RootStackParamList = {
@@ -14,6 +17,8 @@ export type RootStackParamList = {
   ToiletDetail: { toiletId: string }
   AddReview: { toiletId: string }
   Filters: undefined
+  Settings: undefined
+  Auth: undefined
 }
 
 const Stack = createNativeStackNavigator<RootStackParamList>()
@@ -57,6 +62,23 @@ export default function Navigation() {
           options={{ 
             title: 'Фильтры',
             presentation: 'modal' // Show as modal
+          }}
+        />
+        {/* ADD THESE TWO SCREENS: */}
+        <Stack.Screen 
+          name="Settings" 
+          component={SettingsScreen}
+          options={{ 
+            title: 'Настройки',
+            presentation: 'modal'
+          }}
+        />
+        <Stack.Screen 
+          name="Auth" 
+          component={AuthScreen}
+          options={{ 
+            title: 'Авторизация',
+            presentation: 'modal'
           }}
         />
       </Stack.Navigator>

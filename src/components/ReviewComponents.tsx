@@ -349,6 +349,7 @@ export const FeatureTag = ({
 }
 
 // Compact review card
+// Compact review card with proper author name handling
 export const ReviewCard = ({ 
   review, 
   onLike,
@@ -376,6 +377,25 @@ export const ReviewCard = ({
     })
   }
 
+  // UPDATED: Handle author name display properly
+  const getAuthorDisplayName = () => {
+    // If userName is already formatted (e.g., "Аноним #ABC123"), use it as is
+    if (review.userName.startsWith('Аноним #')) {
+      return review.userName
+    }
+    
+    // If userName is "Анонимный пользователь" (legacy), keep it
+    if (review.userName === 'Анонимный пользователь') {
+      return review.userName
+    }
+    
+    // Otherwise it's a real user name
+    return review.userName
+  }
+
+  const authorName = getAuthorDisplayName()
+  const isAnonymous = authorName.startsWith('Аноним #') || authorName === 'Анонимный пользователь'
+
   return (
     <YStack 
       backgroundColor="$background" 
@@ -388,10 +408,17 @@ export const ReviewCard = ({
       {/* Header */}
       <XStack alignItems="center" justifyContent="space-between">
         <YStack flex={1}>
-          <Text fontWeight="600" fontSize={15}>
-            {review.userName}
-          </Text>
-          <Text fontSize={12} color="$colorSubtle">
+          <XStack alignItems="center" space="$2">
+            <Text fontWeight="600" fontSize={15} color="#1A1A1A">
+              {authorName}
+            </Text>
+            {isAnonymous && (
+              <Text fontSize={10} color="#666666" backgroundColor="#F0F0F0" paddingHorizontal="$2" paddingVertical="$1" borderRadius="$2">
+                анонимно
+              </Text>
+            )}
+          </XStack>
+          <Text fontSize={12} color="#666666">
             {formatDate(review.createdAt)}
           </Text>
         </YStack>
@@ -401,7 +428,7 @@ export const ReviewCard = ({
       {/* Comment */}
       {review.comment && (
         <YStack space="$2">
-          <Text fontSize={14} lineHeight={20} numberOfLines={expanded ? undefined : 3}>
+          <Text fontSize={14} lineHeight={20} numberOfLines={expanded ? undefined : 3} color="#1A1A1A">
             {review.comment}
           </Text>
           

@@ -89,3 +89,5 @@ export interface FeatureCounts {
   paidCount: number
   freeCount: number
 }
+
+export * from './auth'

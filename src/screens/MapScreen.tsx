@@ -12,7 +12,8 @@ import { Coordinates } from '@/types'
 import ToiletMapNative from '@components/ToiletMapNative'
 import DataStatusBanner from '@components/DataStatusBanner'
 
-const FilterIcon = () => <Text fontSize={18}>🔍</Text>
+// UPDATED: Changed filter icon to settings
+const SettingsIcon = () => <Text fontSize={18}>⚙️</Text>
 const LocationIcon = () => <Text fontSize={18}>📍</Text>
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Map'>
@@ -40,8 +41,9 @@ export default function MapScreen() {
     navigation.navigate('ToiletDetail', { toiletId })
   }
 
-  const handleFilterPress = () => {
-    navigation.navigate('Filters')
+  // UPDATED: Navigate to Settings instead of Filters
+  const handleSettingsPress = () => {
+    navigation.navigate('Settings')
   }
 
   const handleMyLocationPress = async () => {
@@ -80,8 +82,9 @@ export default function MapScreen() {
           <Pressable onPress={() => setShowToiletsList(!showToiletsList)}>
             <Text fontSize={20}>📋</Text>
           </Pressable>
-          <Pressable onPress={handleFilterPress}>
-            <FilterIcon />
+          {/* UPDATED: Settings button instead of filter */}
+          <Pressable onPress={handleSettingsPress}>
+            <SettingsIcon />
           </Pressable>
         </XStack>
       </XStack>

@@ -12,10 +12,13 @@ import {
   Baby,
   Droplets,
   DollarSign,
-  X
+  X,
+  UserPlus,
+  AlertCircle
 } from 'lucide-react-native'
 import { RootStackParamList } from '@/navigation'
 import { useReviews } from '@/hooks/useReviews'
+import { useAuth } from '@/hooks/useAuth' // ADDED: Import auth hook
 import { Review } from '@/types'
 import StarSliderRating from '@components/StarSliderRating'
 
@@ -49,7 +52,6 @@ const FeatureToggle = ({
   onToggle: () => void
   type?: 'accessibility' | 'babyChanging' | 'ablution' | 'default'
 }) => {
-  // Get feature-specific color
   const getFeatureColor = () => {
     switch (type) {
       case 'accessibility': return colors.accessibility
@@ -107,7 +109,7 @@ const HelpModal = ({
         
         <YStack space="$2">
           {content.map((item, index) => (
-            <Text key={index} fontSize={14} color="$colorSubtle">
+            <Text key={index} fontSize={14} color="#666666">
               • {item}
             </Text>
           ))}
@@ -123,6 +125,7 @@ export default function AddReviewScreen() {
   const { toiletId } = route.params
 
   const { addNewReview } = useReviews(toiletId)
+  const { isAuthenticated, isRegistered, user, getCurrentDisplayName } = useAuth() // ADDED: Use auth hook
   
   // Refs for scrolling
   const scrollViewRef = useRef<any>(null)
@@ -145,7 +148,26 @@ export default function AddReviewScreen() {
   const [showRatingHelp, setShowRatingHelp] = useState(false)
   const [showFeaturesHelp, setShowFeaturesHelp] = useState(false)
 
+  // ADDED: Check if user can leave reviews
+  const canLeaveReview = isAuthenticated && isRegistered
+
   const handleSubmit = async () => {
+    // UPDATED: Check if user can leave reviews
+    if (!canLeaveReview) {
+      Alert.alert(
+        'Требуется регистрация', 
+        'Для добавления отзывов необходимо зарегистрироваться в приложении',
+        [
+          { text: 'Отмена', style: 'cancel' },
+          { 
+            text: 'Зарегистрироваться', 
+            onPress: () => navigation.navigate('Auth')
+          }
+        ]
+      )
+      return
+    }
+
     // Validation
     if (rating === 0) {
       Alert.alert('Ошибка', 'Пожалуйста, поставьте оценку')
@@ -160,7 +182,7 @@ export default function AddReviewScreen() {
     setSubmitting(true)
 
     try {
-      // Convert 10-point scale back to 5-point for database compatibility
+      // UPDATED: Use real user data instead of hardcoded values
       const reviewData: Omit<Review, 'id' | 'createdAt'> & {
         featureMentions?: {
           accessibility: boolean
@@ -170,8 +192,8 @@ export default function AddReviewScreen() {
         }
       } = {
         toiletId,
-        userId: 'anonymous', // TODO: Add proper user management
-        userName: 'Анонимный пользователь',
+        userId: user?.id || 'anonymous', // Use real user ID
+        userName: getCurrentDisplayName(), // Use current display name (handles anonymous mode)
         rating: rating / 2, // Convert 10-point to 5-point
         cleanliness: rating / 2, // Use same rating
         accessibility: rating / 2, // Use same rating
@@ -219,8 +241,85 @@ export default function AddReviewScreen() {
     }
   }
 
+  const handleGoToAuth = () => {
+    navigation.navigate('Auth')
+  }
+
   const isFormValid = rating > 0
   const commentLength = comment.length
+
+  // ADDED: Show registration prompt if not authenticated
+  if (!canLeaveReview) {
+    return (
+      <YStack flex={1} alignItems="center" justifyContent="center" padding="$4" space="$4">
+        <YStack
+          width={80}
+          height={80}
+          backgroundColor="#FF6B6B20"
+          borderRadius={40}
+          alignItems="center"
+          justifyContent="center"
+        >
+          <UserPlus size={40} color="#FF6B6B" />
+        </YStack>
+        
+        <YStack alignItems="center" space="$2">
+          <Text fontSize={20} fontWeight="bold" textAlign="center" color="#1A1A1A">
+            Нужна регистрация
+          </Text>
+          <Text fontSize={16} color="#666666" textAlign="center">
+            Для добавления отзывов необходимо зарегистрироваться в приложении
+          </Text>
+        </YStack>
+
+        <YStack 
+          backgroundColor="#4ECDC415"
+          borderRadius="$3"
+          padding="$3"
+          borderLeftWidth={4}
+          borderLeftColor="#4ECDC4"
+        >
+          <XStack alignItems="flex-start" space="$2">
+            <AlertCircle size={16} color="#4ECDC4" style={{ marginTop: 2 }} />
+            <YStack flex={1} space="$1">
+              <Text fontSize={14} fontWeight="600" color="#1A1A1A">
+                Почему нужна регистрация?
+              </Text>
+              <Text fontSize={13} color="#666666" lineHeight={18}>
+                • Отзывы будут подписаны вашим именем{'\n'}
+                • Защита от спама и фальшивых отзывов{'\n'}
+                • Возможность редактировать свои отзывы
+              </Text>
+            </YStack>
+          </XStack>
+        </YStack>
+
+        <YStack space="$3" width="100%">
+          <Button 
+            size="$5" 
+            backgroundColor="#4ECDC4"
+            pressStyle={{ backgroundColor: '#3BA99C' }}
+            onPress={handleGoToAuth}
+          >
+            <Text color="white" fontWeight="600">
+              Зарегистрироваться
+            </Text>
+          </Button>
+          
+          <Button 
+            variant="outlined"
+            size="$4"
+            onPress={() => navigation.goBack()}
+            borderColor="$borderColor"
+          >
+            <Text color="#666666">
+              Вернуться назад
+            </Text>
+          </Button>
+        </YStack>
+      </YStack>
+    )
+  }
 
   return (
     <KeyboardAvoidingView 
@@ -240,7 +339,26 @@ export default function AddReviewScreen() {
       >
         <YStack paddingHorizontal="$2" paddingVertical="$3" space="$3">
           
-          {/* Rating Section - UPDATED: Using SliderStarRating */}
+          {/* ADDED: User info header */}
+          <YStack 
+            backgroundColor="#4ECDC415" 
+            borderRadius="$3" 
+            padding="$3"
+            borderLeftWidth={4}
+            borderLeftColor="#4ECDC4"
+          >
+            <Text fontSize={14} color="#1A1A1A">
+              Отзыв будет опубликован от имени: <Text fontWeight="bold">{getCurrentDisplayName()}</Text>
+            </Text>
+            <Text fontSize={12} color="#666666" marginTop="$1">
+              {user?.useAnonymousMode 
+                ? 'Вы в анонимном режиме' 
+                : 'Можно переключиться в анонимный режим в настройках'
+              }
+            </Text>
+          </YStack>
+
+          {/* Rating Section */}
           <YStack 
             backgroundColor="$background" 
             borderRadius="$3" 
@@ -250,7 +368,7 @@ export default function AddReviewScreen() {
             space="$3"
           >
             <XStack alignItems="center" justifyContent="space-between">
-              <Text fontSize={18} fontWeight="bold">
+              <Text fontSize={18} fontWeight="bold" color="#1A1A1A">
                 Оценка туалета
               </Text>
               <Pressable onPress={() => setShowRatingHelp(true)}>
@@ -266,7 +384,7 @@ export default function AddReviewScreen() {
             />
           </YStack>
 
-          {/* Features Section - UPDATED: Feature-specific colors */}
+          {/* Features Section */}
           <YStack 
             backgroundColor="$background" 
             borderRadius="$3" 
@@ -276,7 +394,7 @@ export default function AddReviewScreen() {
             space="$3"
           >
             <XStack alignItems="center" justifyContent="space-between">
-              <Text fontSize={18} fontWeight="bold">
+              <Text fontSize={18} fontWeight="bold" color="#1A1A1A">
                 Удобства
               </Text>
               <Pressable onPress={() => setShowFeaturesHelp(true)}>
@@ -315,14 +433,14 @@ export default function AddReviewScreen() {
             borderColor="$borderColor"
             space="$3"
           >
-            <Text fontSize={18} fontWeight="bold">
+            <Text fontSize={18} fontWeight="bold" color="#1A1A1A">
               Стоимость
             </Text>
             
             <XStack alignItems="center" justifyContent="space-between">
               <XStack alignItems="center" space="$2">
                 <DollarSign size={20} color={isPaid ? colors.error : colors.success} />
-                <Text fontSize={16}>
+                <Text fontSize={16} color="#1A1A1A">
                   {isPaid ? 'Платный' : 'Бесплатный'}
                 </Text>
               </XStack>
@@ -350,7 +468,7 @@ export default function AddReviewScreen() {
             borderColor="$borderColor"
             space="$3"
           >
-            <Text fontSize={18} fontWeight="bold">
+            <Text fontSize={18} fontWeight="bold" color="#1A1A1A">
               Комментарий (необязательно)
             </Text>
             
@@ -368,30 +486,28 @@ export default function AddReviewScreen() {
                 borderRadius="$3"
                 padding="$3"
                 fontSize={14}
-                // Keyboard handling improvements
                 returnKeyType="done"
                 blurOnSubmit={true}
                 textAlignVertical="top"
-                // Auto-scroll when focused
                 onFocus={() => {
                   setTimeout(() => {
                     commentSectionRef.current?.measureLayout?.(
                       scrollViewRef.current,
                       (x: number, y: number) => {
                         scrollViewRef.current?.scrollTo({
-                          y: y - 50, // 50px offset from top
+                          y: y - 50,
                           animated: true
                         })
                       }
                     )
-                  }, 300) // Wait for keyboard animation
+                  }, 300)
                 }}
               />
               <XStack justifyContent="space-between" alignItems="center">
-                <Text fontSize={12} color="$colorSubtle">
+                <Text fontSize={12} color="#666666">
                   Расскажите подробнее о вашем опыте
                 </Text>
-                <Text fontSize={12} color={commentLength > 450 ? colors.error : '$colorSubtle'}>
+                <Text fontSize={12} color={commentLength > 450 ? colors.error : '#666666'}>
                   {commentLength}/500
                 </Text>
               </XStack>
@@ -416,7 +532,7 @@ export default function AddReviewScreen() {
                   </Text>
                 </XStack>
               ) : (
-                <Text color={isFormValid ? "white" : "$colorSubtle"} fontWeight="bold">
+                <Text color={isFormValid ? "white" : "#666666"} fontWeight="bold">
                   Отправить отзыв
                 </Text>
               )}
