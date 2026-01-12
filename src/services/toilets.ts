@@ -222,7 +222,7 @@ export function applyFilters(
     if (filters.isAccessible && !toilet.features.isAccessible) return false
     if (filters.hasBabyChanging && !toilet.features.hasBabyChanging) return false
     if (filters.hasAblution && !toilet.features.hasAblution) return false
-    if (filters.isFree !== undefined && toilet.features.isFree !== filters.isFree) return false
+    if (filters.isFree && !toilet.features.isFree) return false
     
     // Filter by rating
     if (filters.minRating && toilet.rating < filters.minRating) return false

@@ -20,11 +20,12 @@ type AuthMode = 'choose' | 'login' | 'register'
 
 export default function AuthScreen() {
   const navigation = useNavigation<NavigationProp>()
-  const { register, isAuthenticated, loading: authLoading } = useAuth()
+  const { register, login, isAuthenticated, loading: authLoading } = useAuth()
   
   // Form state
   const [authMode, setAuthMode] = useState<AuthMode>('choose')
   const [userName, setUserName] = useState('')
+  const [password, setPassword] = useState('')
   const [email, setEmail] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [showEmailField, setShowEmailField] = useState(false)
@@ -50,34 +51,38 @@ export default function AuthScreen() {
     )
   }
 
-  // ADDED: Login handler (simple username check)
+  // Login handler
   const handleLogin = async () => {
     if (!userName.trim()) {
       Alert.alert('Ошибка', 'Введите имя пользователя')
       return
     }
 
-    if (userName.trim().length < 2) {
-      Alert.alert('Ошибка', 'Имя пользователя должно содержать минимум 2 символа')
+    if (!password) {
+      Alert.alert('Ошибка', 'Введите пароль')
       return
     }
 
     setSubmitting(true)
 
     try {
-      // TODO: Implement real login logic
-      // For now, we'll simulate a login attempt
-      Alert.alert(
-        'Вход временно недоступен',
-        'Пока что можно только зарегистрироваться. В будущих версиях добавим полноценный вход в аккаунт.',
-        [
-          { text: 'Понятно', style: 'cancel' },
-          { 
-            text: 'Зарегистрироваться', 
-            onPress: () => setAuthMode('register')
-          }
-        ]
-      )
+      const result = await login({
+        userName: userName.trim(),
+        password: password
+      })
+
+      if (result.success) {
+        Alert.alert(
+          'С возвращением!',
+          `Рады видеть вас снова, ${result.user?.userName}!`,
+          [{
+            text: 'OK',
+            onPress: () => navigation.goBack()
+          }]
+        )
+      } else {
+        Alert.alert('Ошибка входа', result.error || 'Неверное имя пользователя или пароль')
+      }
     } catch (error) {
       console.error('Login error:', error)
       Alert.alert('Ошибка', 'Произошла ошибка при входе')
@@ -98,6 +103,11 @@ export default function AuthScreen() {
       return
     }
 
+    if (!password || password.length < 6) {
+      Alert.alert('Ошибка', 'Пароль должен содержать минимум 6 символов')
+      return
+    }
+
     if (showEmailField && email.trim() && !isValidEmail(email.trim())) {
       Alert.alert('Ошибка', 'Введите корректный email')
       return
@@ -108,6 +118,7 @@ export default function AuthScreen() {
     try {
       const result = await register({
         userName: userName.trim(),
+        password: password,
         email: showEmailField && email.trim() ? email.trim() : undefined
       })
 
@@ -137,6 +148,7 @@ export default function AuthScreen() {
   }
 
   const isFormValid = userName.trim().length >= 2 && 
+    password.length >= 6 &&
     (!showEmailField || !email.trim() || isValidEmail(email.trim()))
 
   // ADDED: Choice screen
@@ -189,7 +201,7 @@ export default function AuthScreen() {
             icon={UserPlus}
           >
             <Text color="white" fontWeight="600">
-              Создать новый аккаунт
+              Создать профиль
             </Text>
           </Button>
           
@@ -263,12 +275,12 @@ export default function AuthScreen() {
             
             <YStack alignItems="center" space="$2">
               <Text fontSize={24} fontWeight="bold" textAlign="center" color="#1A1A1A">
-                {authMode === 'login' ? 'Вход в аккаунт' : 'Регистрация'}
+                {authMode === 'login' ? 'Вход в аккаунт' : 'Создание профиля'}
               </Text>
               <Text fontSize={16} color="#666666" textAlign="center">
                 {authMode === 'login' 
                   ? 'Введите данные для входа'
-                  : 'Создайте аккаунт для добавления отзывов'
+                  : 'Создайте профиль для добавления отзывов'
                 }
               </Text>
             </YStack>
@@ -303,6 +315,30 @@ export default function AuthScreen() {
                   ? 'Введите имя, которое использовали при регистрации'
                   : 'Это имя будет отображаться в ваших отзывах'
                 }
+              </Text>
+            </YStack>
+
+            {/* Password Field */}
+            <YStack space="$2">
+              <XStack alignItems="center" space="$2">
+                <User size={16} color="#666666" />
+                <Text fontSize={16} fontWeight="600" color="#1A1A1A">
+                  Пароль *
+                </Text>
+              </XStack>
+              <Input
+                placeholder="Введите пароль"
+                value={password}
+                onChangeText={setPassword}
+                size="$5"
+                backgroundColor="$backgroundFocus"
+                borderColor="$borderColor"
+                borderRadius="$3"
+                secureTextEntry
+                returnKeyType="done"
+              />
+              <Text fontSize={12} color="#666666">
+                Минимум 6 символов
               </Text>
             </YStack>
 
@@ -359,12 +395,12 @@ export default function AuthScreen() {
                 <XStack alignItems="center" space="$2">
                   <Spinner size="small" color="white" />
                   <Text color="white" fontWeight="600">
-                    {authMode === 'login' ? 'Вход...' : 'Регистрация...'}
+                    {authMode === 'login' ? 'Вход...' : 'Создание...'}
                   </Text>
                 </XStack>
               ) : (
                 <Text color={isFormValid ? "white" : "#666666"} fontWeight="600">
-                  {authMode === 'login' ? 'Войти' : 'Зарегистрироваться'}
+                  {authMode === 'login' ? 'Войти' : 'Создать профиль'}
                 </Text>
               )}
             </Button>

@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { YStack, XStack, Text, View, Spinner } from 'tamagui'
+import React, { useState, useMemo } from 'react'
+import { YStack, XStack, Text, View, Spinner, Input } from 'tamagui'
 import { Pressable, ScrollView } from 'react-native'
 import { StatusBar } from 'expo-status-bar'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -8,9 +8,10 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import { RootStackParamList } from '@/navigation'
 import { useNearbyToilets } from '@/hooks/useNearbyToilets'
 import { getCurrentLocation, formatDistance, getMapRegion } from '@/services/location'
-import { Coordinates } from '@/types'
+import { Coordinates, Filters } from '@/types'
 import ToiletMapNative from '@components/ToiletMapNative'
 import DataStatusBanner from '@components/DataStatusBanner'
+import { Search } from 'lucide-react-native'
 
 // UPDATED: Changed filter icon to settings
 const SettingsIcon = () => <Text fontSize={18}>⚙️</Text>
@@ -24,6 +25,7 @@ export default function MapScreen() {
   const [location, setLocation] = useState<Coordinates | null>(null)
   const [locationLoading, setLocationLoading] = useState(false)
   const [showToiletsList, setShowToiletsList] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
   
   const { 
     filteredToilets, 
@@ -34,8 +36,16 @@ export default function MapScreen() {
     dataSource,
     isStale,
     lastUpdated,
-    cacheInfo
-  } = useNearbyToilets(location, 50) // 50km = show all toilets
+    cacheInfo,
+    activeFilters,
+    applyToiletFilters
+  } = useNearbyToilets(location, 5000) // 5000km = show all toilets
+
+  // Filter toilets based on search query - Memoized to prevent map re-renders
+  const displayedToilets = useMemo(() => filteredToilets.filter(toilet => 
+    toilet.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    toilet.address.toLowerCase().includes(searchQuery.toLowerCase())
+  ), [filteredToilets, searchQuery])
 
   const handleToiletPress = (toiletId: string) => {
     navigation.navigate('ToiletDetail', { toiletId })
@@ -67,34 +77,101 @@ export default function MapScreen() {
       <StatusBar style="light" />
       
       {/* Header with safe area */}
-      <XStack 
-        backgroundColor="#4ECDC4" 
-        paddingTop={insets.top + 12} // Safe area + padding
-        paddingBottom="$3" 
-        paddingHorizontal="$4"
-        alignItems="center"
-        justifyContent="space-between"
-      >
-        <Text color="white" fontSize={24} fontWeight="bold">
-          HojaTTop
-        </Text>
-        <XStack space="$3" alignItems="center">
-          <Pressable onPress={() => setShowToiletsList(!showToiletsList)}>
-            <Text fontSize={20}>📋</Text>
-          </Pressable>
-          {/* UPDATED: Settings button instead of filter */}
-          <Pressable onPress={handleSettingsPress}>
-            <SettingsIcon />
-          </Pressable>
+      <YStack backgroundColor="#4ECDC4" paddingTop={insets.top}>
+        <XStack 
+          paddingVertical="$3" 
+          paddingHorizontal="$4"
+          alignItems="center"
+          justifyContent="space-between"
+        >
+          <Text color="white" fontSize={24} fontWeight="bold">
+            HojaTTop
+          </Text>
+          <XStack space="$3" alignItems="center">
+            <Pressable onPress={() => setShowToiletsList(!showToiletsList)}>
+              <Text fontSize={20}>📋</Text>
+            </Pressable>
+            <Pressable onPress={() => navigation.navigate('Filters', {
+              initialFilters: activeFilters,
+              onApply: (filters: Filters) => applyToiletFilters(filters)
+            })}>
+              <View>
+                <Text fontSize={20}>🔍</Text>
+                {/* Active filters indicator badge */}
+                {(() => {
+                  const count = [
+                    activeFilters.isAccessible,
+                    activeFilters.hasBabyChanging,
+                    activeFilters.hasAblution,
+                    activeFilters.isFree,
+                    (activeFilters.minRating ?? 0) > 0,
+                    activeFilters.maxDistance !== null && activeFilters.maxDistance !== undefined
+                  ].filter(Boolean).length
+                  
+                  return count > 0 ? (
+                    <View style={{
+                      position: 'absolute',
+                      top: -8,
+                      right: -8,
+                      backgroundColor: '#FF6B6B',
+                      borderRadius: 10,
+                      minWidth: 18,
+                      height: 18,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      paddingHorizontal: 4,
+                    }}>
+                      <Text style={{ color: 'white', fontSize: 11, fontWeight: 'bold' }}>
+                        {count}
+                      </Text>
+                    </View>
+                  ) : null
+                })()}
+              </View>
+            </Pressable>
+            {/* UPDATED: Settings button instead of filter */}
+            <Pressable onPress={handleSettingsPress}>
+              <SettingsIcon />
+            </Pressable>
+          </XStack>
         </XStack>
-      </XStack>
+
+        {/* Search Bar */}
+        <View paddingHorizontal="$4" paddingBottom="$3">
+          <XStack 
+            backgroundColor="white" 
+            borderRadius="$4" 
+            paddingHorizontal="$3" 
+            height={40} 
+            alignItems="center"
+          >
+            <Search size={20} color="#999" />
+            <Input
+              flex={1}
+              placeholder="Поиск туалетов..."
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              backgroundColor="transparent"
+              borderWidth={0}
+              height="100%"
+              marginLeft="$2"
+              placeholderTextColor="#999"
+            />
+            {searchQuery.length > 0 && (
+              <Pressable onPress={() => setSearchQuery('')}>
+                <Text fontSize={18} color="#999">✕</Text>
+              </Pressable>
+            )}
+          </XStack>
+        </View>
+      </YStack>
 
       {/* Data Status Banner */}
       <DataStatusBanner
         dataSource={dataSource}
         isStale={isStale}
         lastUpdated={lastUpdated}
-        toiletsCount={cacheInfo?.toiletsCount || filteredToilets.length}
+        toiletsCount={cacheInfo?.toiletsCount || displayedToilets.length}
         onRefresh={forceRefresh}
         loading={toiletsLoading}
       />
@@ -119,7 +196,7 @@ export default function MapScreen() {
           <>
             <ToiletMapNative 
               initialRegion={mapRegion}
-              toilets={filteredToilets}
+              toilets={displayedToilets}
               onToiletPress={handleToiletPress}
             />
 
@@ -165,7 +242,7 @@ export default function MapScreen() {
                 showsHorizontalScrollIndicator={false}
               >
                 <XStack padding="$3" space="$3">
-                  {filteredToilets.map((toilet) => (
+                  {displayedToilets.map((toilet) => (
                     <Pressable
                       key={toilet.id}
                       onPress={() => handleToiletPress(toilet.id)}
@@ -247,7 +324,7 @@ export default function MapScreen() {
           elevation: 3,
         }}>
           <Text color="white" fontSize={12} fontWeight="bold">
-            Найдено: {filteredToilets.length} туалетов
+            Найдено: {displayedToilets.length} туалетов
           </Text>
           {dataSource === 'cache' && (
             <Text color="white" fontSize={10} opacity={0.9}>

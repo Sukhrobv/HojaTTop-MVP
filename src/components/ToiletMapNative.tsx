@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { StyleSheet, View } from 'react-native'
 import MapView, { PROVIDER_GOOGLE, Region, Marker } from 'react-native-maps'
 import { Toilet } from 'lucide-react-native'
@@ -18,15 +18,33 @@ const DEFAULT_REGION: Region = {
   longitudeDelta: 0.0421,
 }
 
-// Custom marker component for toilets
-const ToiletMarker = ({ 
+// Custom marker component for toilets - Optimized
+const ToiletMarker = React.memo(({ 
   toilet, 
   onPress 
 }: { 
   toilet: LocationWithDistance
   onPress: () => void 
 }) => {
+  const [tracksViewChanges, setTracksViewChanges] = useState(true)
   const markerColor = toilet.features.isFree ? '#4ECDC4' : '#FF6B6B' // Green for free, red for paid
+  
+  // Stop tracking view changes after initial render to improve performance
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setTracksViewChanges(false)
+    }, 100) // Short delay to ensure render is complete
+    return () => clearTimeout(timer)
+  }, [])
+
+  // If properties that affect appearance change, re-enable tracking briefly
+  useEffect(() => {
+    setTracksViewChanges(true)
+    const timer = setTimeout(() => {
+      setTracksViewChanges(false)
+    }, 100)
+    return () => clearTimeout(timer)
+  }, [markerColor])
   
   return (
     <Marker
@@ -37,6 +55,7 @@ const ToiletMarker = ({
       onPress={onPress}
       anchor={{ x: 0.5, y: 0.5 }}
       style={styles.markerContainer}
+      tracksViewChanges={tracksViewChanges}
     >
       <View style={[styles.markerBackground, { backgroundColor: markerColor }]}>
         <Toilet 
@@ -50,7 +69,15 @@ const ToiletMarker = ({
       <View style={[styles.markerDot, { backgroundColor: markerColor }]} />
     </Marker>
   )
-}
+}, (prevProps, nextProps) => {
+  // Custom comparison function for React.memo
+  return (
+    prevProps.toilet.id === nextProps.toilet.id &&
+    prevProps.toilet.latitude === nextProps.toilet.latitude &&
+    prevProps.toilet.longitude === nextProps.toilet.longitude &&
+    prevProps.toilet.features.isFree === nextProps.toilet.features.isFree
+  )
+})
 
 export default function ToiletMapNative({ 
   initialRegion, 
@@ -58,11 +85,11 @@ export default function ToiletMapNative({
   onToiletPress 
 }: ToiletMapNativeProps) {
   
-  const handleMarkerPress = (toiletId: string) => {
+  const handleMarkerPress = useCallback((toiletId: string) => {
     if (onToiletPress) {
       onToiletPress(toiletId)
     }
-  }
+  }, [onToiletPress])
 
   return (
     <MapView

@@ -17,6 +17,7 @@ export interface AuthUser {
   id: string
   userName: string
   email?: string
+  shortId: string // Public short ID (e.g. #21RTTEW)
   anonymousId: string // Generated 6-character ID for anonymous mode
   useAnonymousMode: boolean // Toggle for anonymous display
   registeredAt: number // Timestamp
@@ -27,6 +28,7 @@ export interface AuthUser {
 // Registration data
 export interface RegisterData {
   userName: string
+  password?: string // Added for username/password auth
   email?: string // Optional email for recovery
   anonymousId?: string // Pre-generated or will be created
 }
@@ -44,6 +46,7 @@ export interface ReviewAuthor {
   displayName: string // Either userName or "Аноним #ABC123"
   isAnonymous: boolean
   anonymousId?: string // Present if isAnonymous is true
+  shortId?: string // Displayed under the name
 }
 
 // Extended Review interface with proper author handling

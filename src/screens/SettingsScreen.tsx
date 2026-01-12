@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { ScrollView, YStack, XStack, Text, Button, Card, Separator } from 'tamagui'
-import { TouchableOpacity, Alert, Switch } from 'react-native' // Import Switch from React Native instead
+import { TouchableOpacity, Alert, Switch } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import { 
@@ -155,15 +155,19 @@ export default function SettingsScreen() {
   }
 
   const handleThemePress = () => {
-    console.log('Theme settings pressed')
+    Alert.alert('В разработке', 'Смена темы будет доступна в следующих обновлениях')
   }
 
   const handleNotificationsPress = () => {
-    console.log('Notifications settings pressed')
+    Alert.alert('В разработке', 'Настройки уведомлений будут доступны в следующих обновлениях')
   }
 
   const handleAboutPress = () => {
-    console.log('About pressed')
+    Alert.alert(
+      'О приложении HojaTTop',
+      'Версия 1.0.0\n\nПриложение для поиска и оценки туалетов.\n\nРазработано с ❤️ для удобства горожан.',
+      [{ text: 'OK' }]
+    )
   }
 
   // Auth section title and subtitle
@@ -307,7 +311,7 @@ export default function SettingsScreen() {
             <SettingsItem
               icon={Palette}
               title="Тема оформления"
-              subtitle="Светлая тема активна"
+              subtitle="Светлая тема (скоро)"
               onPress={handleThemePress}
               color="#9C27B0"
             />
@@ -317,7 +321,7 @@ export default function SettingsScreen() {
             <SettingsItem
               icon={Bell}
               title="Уведомления"
-              subtitle="Настройки push-уведомлений"
+              subtitle="Настройки (скоро)"
               onPress={handleNotificationsPress}
               color="#FF9800"
             />

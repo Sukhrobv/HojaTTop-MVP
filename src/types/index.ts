@@ -56,7 +56,7 @@ export interface Filters {
   hasAblution?: boolean
   isFree?: boolean
   minRating?: number
-  maxDistance?: number  // in kilometers
+  maxDistance?: number | null  // in kilometers, null means infinite
 }
 
 // Location types

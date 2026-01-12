@@ -18,6 +18,7 @@ interface UseNearbyToiletsReturn {
     hasCache: boolean
     toiletsCount: number
   } | null
+  activeFilters: Filters
 }
 
 export function useNearbyToilets(
@@ -139,5 +140,6 @@ export function useNearbyToilets(
     isStale: state.isStale,
     lastUpdated: state.lastUpdated,
     cacheInfo,
+    activeFilters,
   }
 }

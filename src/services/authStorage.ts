@@ -175,16 +175,19 @@ export class AuthStorageService {
 
   // Initialize storage for new user registration
   static async initializeNewUser(userData: {
+    id?: string
     userName: string
     email?: string
+    shortId: string
   }): Promise<AuthUser> {
     const now = Date.now()
     const anonymousId = AnonymousIdUtils.generate()
     
     const newUser: AuthUser = {
-      id: `user_${now}_${Math.random().toString(36).substr(2, 9)}`,
+      id: userData.id || `user_${now}_${Math.random().toString(36).substr(2, 9)}`,
       userName: userData.userName,
       email: userData.email,
+      shortId: userData.shortId,
       anonymousId,
       useAnonymousMode: false, // Start with real name
       registeredAt: now,

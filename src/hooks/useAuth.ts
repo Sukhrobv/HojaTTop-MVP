@@ -1,10 +1,12 @@
 // Authentication hook for HojaTTop
 // Manages auth state and provides auth-related functions
+// ВРЕМЕННО: работает только с локальным хранилищем, без Firebase Auth
 
 import { useState, useEffect, useCallback } from 'react'
-import { AuthState, AuthUser, RegisterData, RegistrationResult, AnonymousToggleResult } from '@/types/auth'
+import { AuthState, AuthUser, RegisterData, RegistrationResult, AnonymousToggleResult, LoginResult } from '@/types/auth'
 import { AuthStorageService } from '@/services/authStorage'
 import { AnonymousIdUtils } from '@/services/anonymousAuth'
+import { generateShortId } from '@/utils/id'
 
 const initialAuthState: AuthState = {
   isAuthenticated: false,
@@ -22,6 +24,7 @@ export function useAuth() {
     try {
       setAuthState(prev => ({ ...prev, loading: true, error: null }))
       
+      // ВРЕМЕННО: пропускаем Firebase Auth, используем только локальное хранилище
       const [isRegistered, user] = await Promise.all([
         AuthStorageService.isUserRegistered(),
         AuthStorageService.loadUser()
@@ -35,7 +38,7 @@ export function useAuth() {
         error: null
       })
 
-      console.log('Auth initialized:', { isRegistered, hasUser: user !== null })
+      console.log('Auth initialized (local only):', { isRegistered, hasUser: user !== null })
     } catch (error) {
       console.error('Error initializing auth:', error)
       setAuthState({
@@ -60,16 +63,27 @@ export function useAuth() {
         return { success: false, error: 'Имя пользователя должно содержать минимум 2 символа' }
       }
 
+      if (!data.password || data.password.length < 6) {
+        return { success: false, error: 'Пароль должен содержать минимум 6 символов' }
+      }
+
       // Check if already registered
       const isAlreadyRegistered = await AuthStorageService.isUserRegistered()
       if (isAlreadyRegistered) {
         return { success: false, error: 'Пользователь уже зарегистрирован' }
       }
 
-      // Create new user
+      // ВРЕМЕННО: генерируем локальный ID вместо Firebase
+      const localId = `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      const shortId = generateShortId()
+      const dummyEmail = `${data.userName.trim().replace(/\s+/g, '_').toLowerCase()}_${Date.now()}@hojattop.local`
+
+      // Create user in local storage
       const newUser = await AuthStorageService.initializeNewUser({
+        id: localId,
         userName: data.userName.trim(),
-        email: data.email?.trim()
+        email: dummyEmail,
+        shortId
       })
 
       setAuthState({
@@ -81,7 +95,7 @@ export function useAuth() {
       })
 
       return { success: true, user: newUser }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Registration error:', error)
       const errorMessage = 'Ошибка при регистрации'
       
@@ -92,6 +106,29 @@ export function useAuth() {
       }))
 
       return { success: false, error: errorMessage }
+    }
+  }, [])
+
+  // Login user (Placeholder for now)
+  const login = useCallback(async (data: RegisterData): Promise<LoginResult> => {
+    try {
+      setAuthState(prev => ({ ...prev, loading: true, error: null }))
+
+      if (!data.userName.trim() || !data.password) {
+        return { success: false, error: 'Введите имя пользователя и пароль' }
+      }
+
+      // ВРЕМЕННО: вход не поддерживается
+      return { success: false, error: 'Вход временно не поддерживается. Пожалуйста, создайте новый профиль.' }
+
+    } catch (error: any) {
+      console.error('Login error:', error)
+      setAuthState(prev => ({
+        ...prev,
+        loading: false,
+        error: 'Ошибка при входе'
+      }))
+      return { success: false, error: 'Ошибка при входе' }
     }
   }, [])
 
@@ -209,6 +246,7 @@ export function useAuth() {
     
     // Actions
     register,
+    login,
     logout,
     toggleAnonymousMode,
     refreshAuth,

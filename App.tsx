@@ -1,3 +1,4 @@
+import "react-native-get-random-values";
 import React from 'react'
 import { TamaguiProvider } from 'tamagui'
 import tamaguiConfig from './tamagui.config'

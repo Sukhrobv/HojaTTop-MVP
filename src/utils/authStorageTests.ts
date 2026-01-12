@@ -3,6 +3,7 @@
 
 import { AuthStorageService } from '@/services/authStorage'
 import { AuthUser } from '@/types/auth'
+import { generateShortId } from '@/utils/id'
 
 // Test runner for AuthStorage
 export async function runAuthStorageTests(): Promise<void> {
@@ -66,7 +67,8 @@ async function testUserRegistrationAndStorage(): Promise<void> {
     // Create new user
     const newUser = await AuthStorageService.initializeNewUser({
       userName: 'TestUser',
-      email: 'test@example.com'
+      email: 'test@example.com',
+      shortId: generateShortId()
     })
     
     // Verify user data

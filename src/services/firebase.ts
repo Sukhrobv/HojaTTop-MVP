@@ -1,8 +1,7 @@
 // Firebase configuration for HojaTTop
-import { initializeApp } from 'firebase/app'
+import { initializeApp, getApps } from 'firebase/app'
 import { getFirestore } from 'firebase/firestore'
-// import { getAuth } from 'firebase/auth' // Commented out for now
-// import { getStorage } from 'firebase/storage' // Commented out for now
+import { getStorage } from 'firebase/storage'
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -12,18 +11,17 @@ const firebaseConfig = {
   storageBucket: "hojattop-e7a20.firebasestorage.app",
   messagingSenderId: "877658490157",
   appId: "1:877658490157:web:19eaa92366fbdee70b7fa4"
-  // Note: measurementId not needed for React Native
 }
 
 // Initialize Firebase
-const app = initializeApp(firebaseConfig)
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]
 
-// Initialize only Firestore for now
+// Auth временно отключён - будет добавлен позже с @react-native-firebase/auth
+export const auth = null as any
+
 export const db = getFirestore(app)
-// export const auth = getAuth(app) // Will enable when needed
-// export const storage = getStorage(app) // Will enable when needed
+export const storage = getStorage(app)
 
-// Export the app instance if needed
 export default app
 
 // Collection names as constants to avoid typos
@@ -31,4 +29,4 @@ export const COLLECTIONS = {
   TOILETS: 'toilets',
   REVIEWS: 'reviews',
   USERS: 'users'
-} as const
+}

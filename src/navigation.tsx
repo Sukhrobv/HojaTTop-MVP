@@ -10,13 +10,17 @@ import FiltersScreen from '@screens/FiltersScreen'
 // ADD THESE TWO IMPORTS:
 import SettingsScreen from '@screens/SettingsScreen'
 import AuthScreen from '@screens/AuthScreen'
+import { Filters } from '@/types'
 
 // Define navigation params type
 export type RootStackParamList = {
   Map: undefined
   ToiletDetail: { toiletId: string }
   AddReview: { toiletId: string }
-  Filters: undefined
+  Filters: {
+    initialFilters?: Filters
+    onApply?: (filters: Filters) => void
+  }
   Settings: undefined
   Auth: undefined
 }

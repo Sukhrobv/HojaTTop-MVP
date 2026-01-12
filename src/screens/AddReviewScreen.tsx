@@ -1,13 +1,11 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { ScrollView, YStack, XStack, Text, Button, TextArea, Spinner, Switch, Sheet } from 'tamagui'
-import { Alert, Pressable, KeyboardAvoidingView, Platform } from 'react-native'
+import { Alert, Pressable, KeyboardAvoidingView, Platform, Keyboard } from 'react-native'
 import { useNavigation, useRoute } from '@react-navigation/native'
 import { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import { RouteProp } from '@react-navigation/native'
 import { 
   HelpCircle, 
-  ChevronDown, 
-  ChevronUp,
   Accessibility,
   Baby,
   Droplets,
@@ -18,9 +16,9 @@ import {
 } from 'lucide-react-native'
 import { RootStackParamList } from '@/navigation'
 import { useReviews } from '@/hooks/useReviews'
-import { useAuth } from '@/hooks/useAuth' // ADDED: Import auth hook
+import { useAuth } from '@/hooks/useAuth'
 import { Review } from '@/types'
-import StarSliderRating from '@components/StarSliderRating'
+import RatingSelector from '@components/RatingSelector'
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'AddReview'>
 type RouteProps = RouteProp<RootStackParamList, 'AddReview'>
@@ -125,18 +123,18 @@ export default function AddReviewScreen() {
   const { toiletId } = route.params
 
   const { addNewReview } = useReviews(toiletId)
-  const { isAuthenticated, isRegistered, user, getCurrentDisplayName } = useAuth() // ADDED: Use auth hook
+  const { isAuthenticated, isRegistered, user, getCurrentDisplayName } = useAuth()
   
   // Refs for scrolling
   const scrollViewRef = useRef<any>(null)
-  const commentSectionRef = useRef<any>(null)
-
-  // Form state (using 10-point scale, only one rating)
+  
+  // Form state
   const [rating, setRating] = useState(0)
   const [comment, setComment] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [bottomPadding, setBottomPadding] = useState(20) // Dynamic padding state, default 20
   
-  // Feature toggles (like Yandex Taxi)
+  // Feature toggles
   const [hasAccessibility, setHasAccessibility] = useState(false)
   const [hasBabyChanging, setHasBabyChanging] = useState(false)
   const [hasAblution, setHasAblution] = useState(false)
@@ -148,11 +146,37 @@ export default function AddReviewScreen() {
   const [showRatingHelp, setShowRatingHelp] = useState(false)
   const [showFeaturesHelp, setShowFeaturesHelp] = useState(false)
 
-  // ADDED: Check if user can leave reviews
+  // Handle keyboard appearance
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => {
+        setBottomPadding(120) // Increase padding when keyboard shows
+        // Wait a bit for the keyboard to fully open/layout to adjust
+        setTimeout(() => {
+          // Scroll to the bottom where the comment input is
+          scrollViewRef.current?.scrollToEnd({ animated: true })
+        }, 100)
+      }
+    )
+
+    const keyboardDidHideListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        setBottomPadding(20) // Reset padding when keyboard hides
+      }
+    )
+
+    return () => {
+      keyboardDidShowListener.remove()
+      keyboardDidHideListener.remove()
+    }
+  }, [])
+
+  // Check if user can leave reviews
   const canLeaveReview = isAuthenticated && isRegistered
 
   const handleSubmit = async () => {
-    // UPDATED: Check if user can leave reviews
     if (!canLeaveReview) {
       Alert.alert(
         'Требуется регистрация', 
@@ -182,7 +206,6 @@ export default function AddReviewScreen() {
     setSubmitting(true)
 
     try {
-      // UPDATED: Use real user data instead of hardcoded values
       const reviewData: Omit<Review, 'id' | 'createdAt'> & {
         featureMentions?: {
           accessibility: boolean
@@ -192,14 +215,13 @@ export default function AddReviewScreen() {
         }
       } = {
         toiletId,
-        userId: user?.id || 'anonymous', // Use real user ID
-        userName: getCurrentDisplayName(), // Use current display name (handles anonymous mode)
+        userId: user?.id || 'anonymous',
+        userName: getCurrentDisplayName(),
         rating: rating / 2, // Convert 10-point to 5-point
-        cleanliness: rating / 2, // Use same rating
-        accessibility: rating / 2, // Use same rating
+        cleanliness: rating / 2,
+        accessibility: rating / 2,
         comment: comment.trim(),
-        photos: [], // TODO: Add photo upload functionality
-        // Add feature mentions for counting
+        photos: [],
         featureMentions: {
           accessibility: hasAccessibility,
           babyChanging: hasBabyChanging,
@@ -217,7 +239,6 @@ export default function AddReviewScreen() {
           [{ 
             text: 'OK', 
             onPress: () => {
-              // Small delay to ensure data is synced
               setTimeout(() => {
                 navigation.goBack()
               }, 500)
@@ -248,7 +269,6 @@ export default function AddReviewScreen() {
   const isFormValid = rating > 0
   const commentLength = comment.length
 
-  // ADDED: Show registration prompt if not authenticated
   if (!canLeaveReview) {
     return (
       <YStack flex={1} alignItems="center" justifyContent="center" padding="$4" space="$4">
@@ -325,7 +345,7 @@ export default function AddReviewScreen() {
     <KeyboardAvoidingView 
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
     >
       <ScrollView 
         ref={scrollViewRef}
@@ -335,11 +355,11 @@ export default function AddReviewScreen() {
         showsVerticalScrollIndicator={false}
         bounces={false}
         overScrollMode="never"
-        contentContainerStyle={{ flexGrow: 1 }}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: bottomPadding }}
       >
         <YStack paddingHorizontal="$2" paddingVertical="$3" space="$3">
           
-          {/* ADDED: User info header */}
+          {/* User info header */}
           <YStack 
             backgroundColor="#4ECDC415" 
             borderRadius="$3" 
@@ -369,18 +389,16 @@ export default function AddReviewScreen() {
           >
             <XStack alignItems="center" justifyContent="space-between">
               <Text fontSize={18} fontWeight="bold" color="#1A1A1A">
-                Оценка туалета
+                Оценка точки
               </Text>
               <Pressable onPress={() => setShowRatingHelp(true)}>
                 <HelpCircle size={20} color={colors.neutral} />
               </Pressable>
             </XStack>
             
-            <StarSliderRating
+            <RatingSelector
               value={rating}
               onChange={setRating}
-              maxStars={10}
-              starSize={28}
             />
           </YStack>
 
@@ -460,13 +478,13 @@ export default function AddReviewScreen() {
 
           {/* Comment Section */}
           <YStack 
-            ref={commentSectionRef}
             backgroundColor="$background" 
             borderRadius="$3" 
             padding="$4"
             borderWidth={1}
             borderColor="$borderColor"
             space="$3"
+            marginBottom="$4"
           >
             <Text fontSize={18} fontWeight="bold" color="#1A1A1A">
               Комментарий (необязательно)
@@ -486,21 +504,12 @@ export default function AddReviewScreen() {
                 borderRadius="$3"
                 padding="$3"
                 fontSize={14}
-                returnKeyType="done"
-                blurOnSubmit={true}
+                returnKeyType="default"
                 textAlignVertical="top"
                 onFocus={() => {
                   setTimeout(() => {
-                    commentSectionRef.current?.measureLayout?.(
-                      scrollViewRef.current,
-                      (x: number, y: number) => {
-                        scrollViewRef.current?.scrollTo({
-                          y: y - 50,
-                          animated: true
-                        })
-                      }
-                    )
-                  }, 300)
+                    scrollViewRef.current?.scrollToEnd({ animated: true })
+                  }, 100)
                 }}
               />
               <XStack justifyContent="space-between" alignItems="center">
@@ -547,13 +556,12 @@ export default function AddReviewScreen() {
         onClose={() => setShowRatingHelp(false)}
         title="Как оценивать?"
         content={[
-          "Поставьте оценку от 1 до 10 звезд",
-          "1-2 звезды: Ужасное состояние",
-          "3-4 звезды: Плохое состояние", 
-          "5-6 звезд: Нормальное состояние",
-          "7-8 звезд: Хорошее состояние",
-          "9-10 звезд: Отличное состояние",
-          "Можно нажимать на звездочки или перетаскивать"
+          "Выберите оценку от 1 до 5 звезд",
+          "1 звезда: Ужасно",
+          "2 звезды: Плохо", 
+          "3 звезды: Нормально",
+          "4 звезды: Хорошо",
+          "5 звезд: Отлично"
         ]}
       />
 
@@ -562,7 +570,7 @@ export default function AddReviewScreen() {
         onClose={() => setShowFeaturesHelp(false)}
         title="Про удобства"
         content={[
-          "Отметьте, какие удобства есть в туалете",
+          "Отметьте, какие удобства есть в точке",
           "Доступность: пандусы, широкие двери, поручни",
           "Пеленальный столик: для смены подгузников",
           "Омовение: специальные условия для ритуального омовения"
