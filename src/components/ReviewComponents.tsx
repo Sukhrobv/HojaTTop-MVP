@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Pressable } from 'react-native'
-import { Button, Progress, Text, XStack, YStack } from 'tamagui'
+import { Button, Progress, Sheet, Text, XStack, YStack } from 'tamagui'
 import {
   Accessibility,
   ArrowDown,
@@ -8,7 +8,10 @@ import {
   Baby,
   ChevronDown,
   ChevronUp,
+  Check,
+  Copy,
   Droplets,
+  Gift,
   MessageSquare,
   Star
 } from 'lucide-react-native'
@@ -32,6 +35,142 @@ const colors = {
   accessibility: '#2196F3', // Blue for accessibility
   babyChanging: '#FF9800',  // Orange for baby changing
   ablution: '#00BCD4',      // Light blue for ablution
+}
+
+// Universal reward bottom sheet with icon-only copy action
+export const RewardSheet = ({
+  open,
+  onOpenChange,
+  title = 'Спасибо за отзыв!',
+  subtitle,
+  rewardLabel = 'Ваш бонус',
+  code,
+  terms,
+  accentColor = colors.primary,
+  icon: Icon = Gift,
+  onCopy
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  title?: string
+  subtitle?: string
+  rewardLabel?: string
+  code?: string
+  terms?: string
+  accentColor?: string
+  icon?: any
+  onCopy?: (code: string) => Promise<void> | void
+}) => {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = async () => {
+    if (!code) return
+    try {
+      await onCopy?.(code)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch (error) {
+      console.warn('Copy failed', error)
+    }
+  }
+
+  return (
+    <Sheet
+      modal
+      open={open}
+      onOpenChange={onOpenChange}
+      snapPoints={[44]}
+      dismissOnSnapToBottom
+      animation="medium"
+    >
+      <Sheet.Frame backgroundColor="$background" padding="$4" borderTopLeftRadius="$6" borderTopRightRadius="$6">
+        <Sheet.Handle />
+
+        <YStack space="$3">
+          <XStack alignItems="center" space="$3">
+            <YStack
+              width={48}
+              height={48}
+              borderRadius={16}
+              alignItems="center"
+              justifyContent="center"
+              backgroundColor={`${accentColor}22`}
+              borderWidth={1}
+              borderColor={`${accentColor}40`}
+            >
+              <Icon size={24} color={accentColor} />
+            </YStack>
+            <YStack flex={1} space="$1">
+              <Text fontSize={18} fontWeight="700" color="$color">
+                {title}
+              </Text>
+              {subtitle && (
+                <Text fontSize={14} color="$colorSubtle">
+                  {subtitle}
+                </Text>
+              )}
+            </YStack>
+          </XStack>
+
+          <YStack
+            space="$2"
+            backgroundColor="$backgroundPress"
+            borderRadius="$4"
+            padding="$3"
+            borderWidth={1}
+            borderColor="$borderColor"
+          >
+            <Text fontSize={12} color="$colorSubtle" textTransform="uppercase" letterSpacing={0.5}>
+              {rewardLabel}
+            </Text>
+
+            <XStack alignItems="center" justifyContent="space-between" space="$2">
+              <Text fontSize={20} fontWeight="700" color="$color" flexShrink={1}>
+                {code || 'Покажите экран сотруднику'}
+              </Text>
+
+              {code && (
+                <Pressable
+                  onPress={handleCopy}
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 12,
+                    backgroundColor: accentColor,
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  {copied ? (
+                    <Check size={18} color="#ffffff" />
+                  ) : (
+                    <Copy size={18} color="#ffffff" />
+                  )}
+                </Pressable>
+              )}
+            </XStack>
+          </YStack>
+
+          {terms && (
+            <Text fontSize={13} color="$colorSubtle" lineHeight={18}>
+              {terms}
+            </Text>
+          )}
+
+          <Button
+            backgroundColor={accentColor}
+            pressStyle={{ opacity: 0.9 }}
+            onPress={() => onOpenChange(false)}
+            borderRadius="$4"
+          >
+            <Text color="white" fontWeight="700">
+              Закрыть
+            </Text>
+          </Button>
+        </YStack>
+      </Sheet.Frame>
+    </Sheet>
+  )
 }
 
 // Legacy rating stars component for backward compatibility
@@ -553,7 +692,7 @@ export const ReviewSectionHeader = ({
 }) => {
   return (
     <XStack alignItems="center" justifyContent="space-between">
-      <XStack alignItems="center" space="$3">
+      <XStack alignItems="center" space="$2">
         <Text fontSize={18} fontWeight="bold">
           Отзывы
         </Text>

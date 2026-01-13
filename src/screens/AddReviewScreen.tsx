@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
+import * as Clipboard from 'expo-clipboard'
 import { ScrollView, YStack, XStack, Text, Button, TextArea, Spinner, Switch, Sheet } from 'tamagui'
 import { Alert, Pressable, KeyboardAvoidingView, Platform, Keyboard } from 'react-native'
 import { useNavigation, useRoute } from '@react-navigation/native'
@@ -19,6 +20,7 @@ import { useReviews } from '@/hooks/useReviews'
 import { useAuth } from '@/hooks/useAuth'
 import { Review } from '@/types'
 import RatingSelector from '@components/RatingSelector'
+import { RewardSheet } from '@components/ReviewComponents'
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'AddReview'>
 type RouteProps = RouteProp<RootStackParamList, 'AddReview'>
@@ -36,6 +38,14 @@ const colors = {
   accessibility: '#2196F3', // Blue for accessibility
   babyChanging: '#FF9800',  // Orange for baby changing
   ablution: '#00BCD4',      // Light blue for ablution
+}
+
+const rewardMock = {
+  title: 'Спасибо за отзыв!',
+  subtitle: 'Мы начислили примерный бонус за этот отзыв.',
+  rewardLabel: 'Ваш бонус',
+  code: 'THANKS2025',
+  terms: 'Покажите этот код сотруднику в течение 7 дней. Это демонстрация награды.'
 }
 
 // Feature toggle with fixed size, icon only, feature-specific colors
@@ -145,6 +155,7 @@ export default function AddReviewScreen() {
   // Help modals
   const [showRatingHelp, setShowRatingHelp] = useState(false)
   const [showFeaturesHelp, setShowFeaturesHelp] = useState(false)
+  const [showRewardSheet, setShowRewardSheet] = useState(false)
 
   // Handle keyboard appearance
   useEffect(() => {
@@ -172,6 +183,23 @@ export default function AddReviewScreen() {
       keyboardDidHideListener.remove()
     }
   }, [])
+
+  const handleRewardOpenChange = (open: boolean) => {
+    setShowRewardSheet(open)
+    if (!open) {
+      setTimeout(() => {
+        navigation.goBack()
+      }, 300)
+    }
+  }
+
+  const handleCopyReward = async (code: string) => {
+    try {
+      await Clipboard.setStringAsync(code)
+    } catch (error) {
+      console.warn('Clipboard copy failed', error)
+    }
+  }
 
   // Check if user can leave reviews
   const canLeaveReview = isAuthenticated && isRegistered
@@ -233,18 +261,9 @@ export default function AddReviewScreen() {
       const success = await addNewReview(reviewData)
 
       if (success) {
-        Alert.alert(
-          'Успешно!', 
-          'Ваш отзыв добавлен и будет виден другим пользователям',
-          [{ 
-            text: 'OK', 
-            onPress: () => {
-              setTimeout(() => {
-                navigation.goBack()
-              }, 500)
-            }
-          }]
-        )
+        Keyboard.dismiss()
+        setShowRewardSheet(true)
+        return
       } else {
         Alert.alert(
           'Ошибка',
@@ -574,6 +593,18 @@ export default function AddReviewScreen() {
           "Пеленальный столик: для смены подгузников",
           "Омовение: специальные условия для ритуального омовения"
         ]}
+      />
+
+      <RewardSheet
+        open={showRewardSheet}
+        onOpenChange={handleRewardOpenChange}
+        title={rewardMock.title}
+        subtitle={rewardMock.subtitle}
+        rewardLabel={rewardMock.rewardLabel}
+        code={rewardMock.code}
+        terms={rewardMock.terms}
+        accentColor={colors.primary}
+        onCopy={handleCopyReward}
       />
     </KeyboardAvoidingView>
   )

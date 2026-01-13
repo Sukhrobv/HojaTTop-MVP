@@ -17,6 +17,7 @@
     "@tamagui/core": "^1.115.0",
     "@tamagui/font-inter": "^1.115.0",
     "expo": "^54.0.10",
+    "expo-clipboard": "~8.0.8",
     "expo-location": "~18.1.5",
     "expo-status-bar": "~2.2.3",
     "firebase": "^10.14.0",
