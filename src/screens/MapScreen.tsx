@@ -11,11 +11,7 @@ import { getCurrentLocation, formatDistance, getMapRegion } from '@/services/loc
 import { Coordinates, Filters } from '@/types'
 import ToiletMapNative from '@components/ToiletMapNative'
 import DataStatusBanner from '@components/DataStatusBanner'
-import { Search } from 'lucide-react-native'
-
-// UPDATED: Changed filter icon to settings
-const SettingsIcon = () => <Text fontSize={18}>⚙️</Text>
-const LocationIcon = () => <Text fontSize={18}>📍</Text>
+import { Search, Locate, List, SlidersHorizontal, Settings } from 'lucide-react-native'
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Map'>
 
@@ -51,7 +47,6 @@ export default function MapScreen() {
     navigation.navigate('ToiletDetail', { toiletId })
   }
 
-  // UPDATED: Navigate to Settings instead of Filters
   const handleSettingsPress = () => {
     navigation.navigate('Settings')
   }
@@ -78,7 +73,7 @@ export default function MapScreen() {
       
       {/* Header with safe area */}
       <YStack backgroundColor="#4ECDC4" paddingTop={insets.top}>
-        <XStack 
+        {/* <XStack 
           paddingVertical="$3" 
           paddingHorizontal="$4"
           alignItems="center"
@@ -87,54 +82,7 @@ export default function MapScreen() {
           <Text color="white" fontSize={24} fontWeight="bold">
             HojaTTop
           </Text>
-          <XStack space="$3" alignItems="center">
-            <Pressable onPress={() => setShowToiletsList(!showToiletsList)}>
-              <Text fontSize={20}>📋</Text>
-            </Pressable>
-            <Pressable onPress={() => navigation.navigate('Filters', {
-              initialFilters: activeFilters,
-              onApply: (filters: Filters) => applyToiletFilters(filters)
-            })}>
-              <View>
-                <Text fontSize={20}>🔍</Text>
-                {/* Active filters indicator badge */}
-                {(() => {
-                  const count = [
-                    activeFilters.isAccessible,
-                    activeFilters.hasBabyChanging,
-                    activeFilters.hasAblution,
-                    activeFilters.isFree,
-                    (activeFilters.minRating ?? 0) > 0,
-                    activeFilters.maxDistance !== null && activeFilters.maxDistance !== undefined
-                  ].filter(Boolean).length
-                  
-                  return count > 0 ? (
-                    <View style={{
-                      position: 'absolute',
-                      top: -8,
-                      right: -8,
-                      backgroundColor: '#FF6B6B',
-                      borderRadius: 10,
-                      minWidth: 18,
-                      height: 18,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      paddingHorizontal: 4,
-                    }}>
-                      <Text style={{ color: 'white', fontSize: 11, fontWeight: 'bold' }}>
-                        {count}
-                      </Text>
-                    </View>
-                  ) : null
-                })()}
-              </View>
-            </Pressable>
-            {/* UPDATED: Settings button instead of filter */}
-            <Pressable onPress={handleSettingsPress}>
-              <SettingsIcon />
-            </Pressable>
-          </XStack>
-        </XStack>
+        </XStack> */}
 
         {/* Search Bar */}
         <View paddingHorizontal="$4" paddingBottom="$3">
@@ -200,31 +148,6 @@ export default function MapScreen() {
               onToiletPress={handleToiletPress}
             />
 
-            {/* Legend */}
-            {/* <View style={{
-              position: 'absolute',
-              top: 20,
-              right: 20,
-              backgroundColor: 'rgba(255, 255, 255, 0.9)',
-              borderRadius: 8,
-              padding: 12,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.1,
-              shadowRadius: 3.84,
-              elevation: 3,
-            }}>
-              <Text fontSize={12} fontWeight="bold" marginBottom="$2">Легенда:</Text>
-              <XStack alignItems="center" marginBottom="$1">
-                <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: '#4ECDC4', marginRight: 8 }} />
-                <Text fontSize={10}>Бесплатно</Text>
-              </XStack>
-              <XStack alignItems="center">
-                <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: '#FF6B6B', marginRight: 8 }} />
-                <Text fontSize={10}>Платно</Text>
-              </XStack>
-            </View> */}
-
             {/* Toilets List (conditional) */}
             {showToiletsList && (
               <ScrollView 
@@ -283,35 +206,139 @@ export default function MapScreen() {
           </>
         )}
 
-        {/* My Location Button - динамическое позиционирование */}
-        <Pressable
-          onPress={handleMyLocationPress}
-          disabled={locationLoading}
-          style={{
-            position: 'absolute',
-            bottom: showToiletsList ? 155 : 30,
-            right: 20,
-            backgroundColor: 'white',
-            borderRadius: 30,
-            width: 60,
-            height: 60,
-            justifyContent: 'center',
-            alignItems: 'center',
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.25,
-            shadowRadius: 3.84,
-            elevation: 5,
-            opacity: locationLoading ? 0.7 : 1,
-          }}
+        {/* Vertical FAB Stack */}
+        <YStack
+          position="absolute"
+          bottom={showToiletsList ? 150 : 30}
+          right={20}
+          space="$3"
         >
-          {locationLoading ? <Spinner size="small" color="#4ECDC4" /> : <LocationIcon />}
-        </Pressable>
+          {/* Settings Button */}
+          <Pressable
+            onPress={handleSettingsPress}
+            style={{
+              backgroundColor: '#4ECDC4',
+              borderRadius: 30,
+              width: 50,
+              height: 50,
+              justifyContent: 'center',
+              alignItems: 'center',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.25,
+              shadowRadius: 3.84,
+              elevation: 5,
+            }}
+          >
+            <Settings size={24} color="white" />
+          </Pressable>
+
+          {/* Filters Button */}
+          <Pressable
+            onPress={() => navigation.navigate('Filters', {
+              initialFilters: activeFilters,
+              onApply: (filters: Filters) => applyToiletFilters(filters)
+            })}
+            style={{
+              backgroundColor: '#4ECDC4',
+              borderRadius: 30,
+              width: 50,
+              height: 50,
+              justifyContent: 'center',
+              alignItems: 'center',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.25,
+              shadowRadius: 3.84,
+              elevation: 5,
+            }}
+          >
+            <View>
+              <SlidersHorizontal size={24} color="white" />
+              {/* Active filters indicator badge */}
+              {(() => {
+                const count = [
+                  activeFilters.isAccessible,
+                  activeFilters.hasBabyChanging,
+                  activeFilters.hasAblution,
+                  activeFilters.isFree,
+                  (activeFilters.minRating ?? 0) > 0,
+                  activeFilters.maxDistance !== null && activeFilters.maxDistance !== undefined
+                ].filter(Boolean).length
+                
+                return count > 0 ? (
+                  <View style={{
+                    position: 'absolute',
+                    top: -8,
+                    right: -8,
+                    backgroundColor: '#FF6B6B',
+                    borderRadius: 10,
+                    minWidth: 18,
+                    height: 18,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    paddingHorizontal: 4,
+                  }}>
+                    <Text style={{ color: 'white', fontSize: 11, fontWeight: 'bold' }}>
+                      {count}
+                    </Text>
+                  </View>
+                ) : null
+              })()}
+            </View>
+          </Pressable>
+
+          {/* List Toggle Button */}
+          <Pressable
+            onPress={() => setShowToiletsList(!showToiletsList)}
+            style={{
+              backgroundColor: '#4ECDC4',
+              borderRadius: 30,
+              width: 50,
+              height: 50,
+              justifyContent: 'center',
+              alignItems: 'center',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.25,
+              shadowRadius: 3.84,
+              elevation: 5,
+            }}
+          >
+            <List size={24} color="white" />
+          </Pressable>
+
+          {/* My Location Button */}
+          <Pressable
+            onPress={handleMyLocationPress}
+            disabled={locationLoading}
+            style={{
+              backgroundColor: '#4ECDC4',
+              borderRadius: 30,
+              width: 50,
+              height: 50,
+              justifyContent: 'center',
+              alignItems: 'center',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.25,
+              shadowRadius: 3.84,
+              elevation: 5,
+              opacity: locationLoading ? 0.7 : 1,
+            }}
+          >
+            {locationLoading ? (
+              <Spinner size="small" color="white" />
+            ) : (
+              <Locate size={24} color="white" />
+            )}
+          </Pressable>
+        </YStack>
 
         {/* Status Info - динамическое позиционирование */}
         <View style={{
           position: 'absolute',
-          bottom: showToiletsList ? 155 : 30,
+          bottom: showToiletsList ? 150 : 30,
           left: 20,
           backgroundColor: 'rgba(76, 205, 196, 0.9)',
           borderRadius: 20,
