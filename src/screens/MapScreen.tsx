@@ -201,7 +201,7 @@ export default function MapScreen() {
             />
 
             {/* Legend */}
-            <View style={{
+            {/* <View style={{
               position: 'absolute',
               top: 20,
               right: 20,
@@ -223,7 +223,7 @@ export default function MapScreen() {
                 <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: '#FF6B6B', marginRight: 8 }} />
                 <Text fontSize={10}>Платно</Text>
               </XStack>
-            </View>
+            </View> */}
 
             {/* Toilets List (conditional) */}
             {showToiletsList && (
