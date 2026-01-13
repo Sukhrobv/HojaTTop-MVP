@@ -452,12 +452,11 @@ export default function AddReviewScreen() {
             space="$3"
           >
             <Text fontSize={18} fontWeight="bold" color="#1A1A1A">
-              Стоимость
+              Доступность
             </Text>
             
             <XStack alignItems="center" justifyContent="space-between">
               <XStack alignItems="center" space="$2">
-                <DollarSign size={20} color={isPaid ? colors.error : colors.success} />
                 <Text fontSize={16} color="#1A1A1A">
                   {isPaid ? 'Платный' : 'Бесплатный'}
                 </Text>
@@ -513,9 +512,9 @@ export default function AddReviewScreen() {
                 }}
               />
               <XStack justifyContent="space-between" alignItems="center">
-                <Text fontSize={12} color="#666666">
+                {/* <Text fontSize={12} color="#666666">
                   Расскажите подробнее о вашем опыте
-                </Text>
+                </Text> */}
                 <Text fontSize={12} color={commentLength > 450 ? colors.error : '#666666'}>
                   {commentLength}/500
                 </Text>

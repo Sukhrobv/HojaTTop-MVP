@@ -1,19 +1,16 @@
 import React, { useState } from 'react'
-import { YStack, XStack, Text, Progress, Button } from 'tamagui'
 import { Pressable } from 'react-native'
-import { 
-  ThumbsUp, 
-  ThumbsDown, 
-  Accessibility, 
-  Baby, 
-  Droplets, 
-  DollarSign,
-  Clock,
+import { Button, Progress, Text, XStack, YStack } from 'tamagui'
+import {
+  Accessibility,
+  ArrowDown,
+  ArrowUp,
+  Baby,
   ChevronDown,
   ChevronUp,
-  Camera,
-  Star,
-  MessageSquare
+  Droplets,
+  MessageSquare,
+  Star
 } from 'lucide-react-native'
 import { Review } from '@/types'
 
@@ -394,6 +391,7 @@ export const ReviewCard = ({
   }
 
   const authorName = getAuthorDisplayName()
+  const netScore = (review.likes || 0) - (review.dislikes || 0)
   const isAnonymous = authorName.startsWith('Аноним #') || authorName === 'Анонимный пользователь'
 
   return (
@@ -448,43 +446,59 @@ export const ReviewCard = ({
         </YStack>
       )}
       
-      {/* Actions */}
-      <XStack alignItems="center" justifyContent="space-between" paddingTop="$1">
-        <XStack space="$4">
+      {/* Actions - Reddit-style voting */}
+      <XStack alignItems="center" paddingTop="$2">
+        <XStack
+          alignItems="center"
+          space="$3"
+          backgroundColor="$backgroundPress"
+          padding="$2"
+          borderRadius="$4"
+        >
           <Pressable 
             onPress={() => onLike?.(review.id)}
-            style={{ flexDirection: 'row', alignItems: 'center' }}
+            style={{ 
+              width: 28, 
+              height: 28, 
+              borderRadius: 8, 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              backgroundColor: review.userLiked ? '#9494FF20' : 'transparent'
+            }}
           >
-            <ThumbsUp 
-              size={14} 
-              color={review.userLiked ? colors.accent : colors.neutral}
-              fill={review.userLiked ? colors.accent : 'transparent'}
+            <ArrowUp 
+              size={24} 
+              color={review.userLiked ? '#9494FF' : colors.neutral}
+              fill={review.userLiked ? '#9494FF' : 'transparent'} 
             />
-            <Text 
-              fontSize={12} 
-              marginLeft={4}
-              color={review.userLiked ? colors.accent : colors.neutral}
-            >
-              {review.likes || 0}
-            </Text>
           </Pressable>
+          
+          <Text 
+            fontSize={12} 
+            fontWeight="700" 
+            color={netScore > 0 ? '#2EAD68' : netScore < 0 ? '#D64545' : colors.neutral}
+            minWidth={24} 
+            textAlign="center"
+          >
+            {netScore}
+          </Text>
           
           <Pressable 
             onPress={() => onDislike?.(review.id)}
-            style={{ flexDirection: 'row', alignItems: 'center' }}
+            style={{ 
+              width: 28, 
+              height: 28, 
+              borderRadius: 8, 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              backgroundColor: review.userDisliked ? '#FF8B6020' : 'transparent'
+            }}
           >
-            <ThumbsDown 
-              size={14} 
-              color={review.userDisliked ? colors.error : colors.neutral}
-              fill={review.userDisliked ? colors.error : 'transparent'}
+            <ArrowDown 
+              size={24} 
+              color={review.userDisliked ? '#FF8B60' : colors.neutral}
+              fill={review.userDisliked ? '#FF8B60' : 'transparent'} 
             />
-            <Text 
-              fontSize={12} 
-              marginLeft={4}
-              color={review.userDisliked ? colors.error : colors.neutral}
-            >
-              {review.dislikes || 0}
-            </Text>
           </Pressable>
         </XStack>
       </XStack>

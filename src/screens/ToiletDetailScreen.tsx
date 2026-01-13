@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { ScrollView, YStack, XStack, Text, Button, Spinner } from 'tamagui'
 import { Alert, Linking } from 'react-native'
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native'
@@ -10,7 +10,6 @@ import {
   Accessibility, 
   Baby, 
   Droplets, 
-  DollarSign,
   MapPin,
   Clock,
   Star
@@ -19,11 +18,18 @@ import { RootStackParamList } from '@/navigation'
 import { useReviews } from '@/hooks/useReviews'
 import { getToiletById } from '@/services/toilets'
 import { getFeatureCounts } from '@/services/reviews'
-import { Toilet, FeatureCounts } from '@/types'
+import { Toilet, FeatureCounts, Review } from '@/types'
 import { CompactRatingDisplay, ReviewsList, ReviewStats, FeatureTag, ReviewSectionHeader, PaymentStatusBadge, FeatureCounter } from '@components/ReviewComponents'
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'ToiletDetail'>
 type RouteProps = RouteProp<RootStackParamList, 'ToiletDetail'>
+
+type ReviewWithVotes = Review & {
+  likes?: number
+  dislikes?: number
+  userLiked?: boolean
+  userDisliked?: boolean
+}
 
 // UNIFIED color scheme
 const colors = {
@@ -52,6 +58,7 @@ export default function ToiletDetailScreen() {
   const [toiletLoading, setToiletLoading] = useState(true)
   const [toiletError, setToiletError] = useState<string | null>(null)
   const [featureCounts, setFeatureCounts] = useState<FeatureCounts | null>(null)
+  const [reviewList, setReviewList] = useState<ReviewWithVotes[]>([])
 
   const {
     reviews,
@@ -61,6 +68,23 @@ export default function ToiletDetailScreen() {
     forceRefresh: forceRefreshReviews,
     stats
   } = useReviews(toiletId)
+
+  useEffect(() => {
+    setReviewList((prev) =>
+      reviews.map((review) => {
+        const existing = prev.find((item) => item.id === review.id)
+        const reviewWithVotes = review as ReviewWithVotes
+
+        return {
+          ...review,
+          likes: reviewWithVotes.likes ?? existing?.likes ?? 0,
+          dislikes: reviewWithVotes.dislikes ?? existing?.dislikes ?? 0,
+          userLiked: existing?.userLiked ?? reviewWithVotes.userLiked ?? false,
+          userDisliked: existing?.userDisliked ?? reviewWithVotes.userDisliked ?? false
+        }
+      })
+    )
+  }, [reviews])
 
   // Refresh reviews when screen comes into focus (after adding review)
   useFocusEffect(
@@ -108,6 +132,74 @@ export default function ToiletDetailScreen() {
 
     loadToilet()
   }, [toiletId])
+
+  const applyVoteUpdate = (prevReviews: ReviewWithVotes[], reviewId: string, direction: 'upvote' | 'downvote') => {
+    return prevReviews.map((item) => {
+      if (item.id !== reviewId) return item
+
+      let likes = item.likes ?? 0
+      let dislikes = item.dislikes ?? 0
+      let userLiked = item.userLiked ?? false
+      let userDisliked = item.userDisliked ?? false
+
+      if (direction === 'upvote') {
+        if (userLiked) {
+          likes = Math.max(0, likes - 1)
+          userLiked = false
+        } else {
+          likes += 1
+          if (userDisliked) {
+            dislikes = Math.max(0, dislikes - 1)
+            userDisliked = false
+          }
+          userLiked = true
+        }
+      } else {
+        if (userDisliked) {
+          dislikes = Math.max(0, dislikes - 1)
+          userDisliked = false
+        } else {
+          dislikes += 1
+          if (userLiked) {
+            likes = Math.max(0, likes - 1)
+            userLiked = false
+          }
+          userDisliked = true
+        }
+      }
+
+      return { ...item, likes, dislikes, userLiked, userDisliked }
+    })
+  }
+
+  const submitVote = async (_reviewId: string, _direction: 'upvote' | 'downvote') => {
+    // TODO: integrate real vote persistence with backend
+    return Promise.resolve()
+  }
+
+  const handleVote = async (reviewId: string, direction: 'upvote' | 'downvote') => {
+    let previousState: ReviewWithVotes[] = []
+
+    setReviewList((prev) => {
+      previousState = prev.map((item) => ({ ...item }))
+      return applyVoteUpdate(prev, reviewId, direction)
+    })
+
+    try {
+      await submitVote(reviewId, direction)
+    } catch (error) {
+      console.error('Error updating vote:', error)
+      setReviewList(previousState)
+    }
+  }
+
+  const handleUpvote = (reviewId: string) => {
+    handleVote(reviewId, 'upvote')
+  }
+
+  const handleDownvote = (reviewId: string) => {
+    handleVote(reviewId, 'downvote')
+  }
 
   const handleAddReview = () => {
     navigation.navigate('AddReview', { toiletId })
@@ -199,60 +291,56 @@ export default function ToiletDetailScreen() {
           borderColor="$borderColor"
           space="$5"
         >
-          <YStack space="$2">
-            {/* Title with rating in same line */}
+          <YStack space="$3">
+            {/* Title and Payment Status Row */}
             <XStack alignItems="center" justifyContent="space-between">
-              <XStack alignItems="center" space="$2" flex={1}>
-                <Text fontSize={20} fontWeight="bold">
-                  {toilet.name}
+              <Text fontSize={20} fontWeight="bold" flex={1} marginRight="$2">
+                {toilet.name}
+              </Text>
+              
+              {/* Payment status - text only, no icon */}
+              <Text 
+                fontSize={14} 
+                fontWeight="600"
+                color={paymentStatus.isFree ? colors.success : colors.error}
+              >
+                {paymentStatus.isFree ? 'Бесплатно' : 'Платно'}
+              </Text>
+            </XStack>
+
+            {/* Rating and Address Row */}
+            <YStack space="$2">
+              {stats && stats.averageRating > 0 && (
+                <XStack alignItems="center" space="$1">
+                  <Star 
+                    size={16} 
+                    color={colors.starFilled} 
+                    fill={colors.starGold}
+                  />
+                  <Text 
+                    fontSize={14} 
+                    fontWeight="bold" 
+                    color={colors.primary}
+                  >
+                    {stats.averageRating.toFixed(1)}
+                  </Text>
+                </XStack>
+              )}
+              
+              <XStack alignItems="center" space="$2">
+                <MapPin size={14} color={colors.neutral} />
+                <Text color="$colorSubtle" fontSize={13} flex={1}>
+                  {toilet.address}
                 </Text>
-                {/* Rating right next to title */}
-                {stats && stats.averageRating > 0 && (
-                  <XStack alignItems="center" space="$1">
-                    <Star 
-                      size={18} 
-                      color={colors.starFilled} 
-                      fill={colors.starGold}
-                    />
-                    <Text 
-                      fontSize={16} 
-                      fontWeight="bold" 
-                      color={colors.primary}
-                    >
-                      {(stats.averageRating * 2).toFixed(1)}
-                    </Text>
-                  </XStack>
-                )}
               </XStack>
               
-              {/* Payment status */}
-              <XStack alignItems="center" space="$1">
-                <DollarSign 
-                  size={16} 
-                  color={paymentStatus.isFree ? colors.success : colors.error} 
-                />
-                <Text 
-                  fontSize={14} 
-                  fontWeight="600"
-                  color={paymentStatus.isFree ? colors.success : colors.error}
-                >
-                  {paymentStatus.isFree ? 'Бесплатно' : 'Платно'}
+              <XStack alignItems="center" space="$2">
+                <Clock size={14} color={colors.neutral} />
+                <Text color="$colorSubtle" fontSize={13}>
+                  {toilet.openHours}
                 </Text>
               </XStack>
-            </XStack>
-            
-            <XStack alignItems="center" space="$2">
-              <MapPin size={16} color={colors.neutral} />
-              <Text color="$colorSubtle" flex={1}>
-                {toilet.address}
-              </Text>
-            </XStack>
-            <XStack alignItems="center" space="$2">
-              <Clock size={16} color={colors.neutral} />
-              <Text color="$colorSubtle">
-                {toilet.openHours}
-              </Text>
-            </XStack>
+            </YStack>
           </YStack>
 
           {/* ONLY Feature counters (no simple icons) */}
@@ -328,9 +416,11 @@ export default function ToiletDetailScreen() {
           />
           
           <ReviewsList 
-            reviews={reviews}
+            reviews={reviewList}
             loading={reviewsLoading}
             error={reviewsError}
+            onLike={handleUpvote}
+            onDislike={handleDownvote}
             emptyMessage="Отзывов о данном туалете пока нет"
           />
         </YStack>
