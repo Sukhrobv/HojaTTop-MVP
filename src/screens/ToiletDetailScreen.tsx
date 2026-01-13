@@ -20,6 +20,7 @@ import { getToiletById } from '@/services/toilets'
 import { getFeatureCounts } from '@/services/reviews'
 import { Toilet, FeatureCounts, Review } from '@/types'
 import { CompactRatingDisplay, ReviewsList, ReviewStats, FeatureTag, ReviewSectionHeader, PaymentStatusBadge, FeatureCounter, RewardSheet } from '@components/ReviewComponents'
+import { useTranslation } from '@/i18n'
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'ToiletDetail'>
 type RouteProps = RouteProp<RootStackParamList, 'ToiletDetail'>
@@ -53,6 +54,7 @@ export default function ToiletDetailScreen() {
   const navigation = useNavigation<NavigationProp>()
   const route = useRoute<RouteProps>()
   const { toiletId } = route.params
+  const { t } = useTranslation()
 
   const [toilet, setToilet] = useState<Toilet | null>(null)
   const [toiletLoading, setToiletLoading] = useState(true)
@@ -122,11 +124,11 @@ export default function ToiletDetailScreen() {
           // Load feature counts after toilet is loaded
           loadFeatureCounts()
         } else {
-          setToiletError('Туалет не найден')
+          setToiletError(t('toilet.notFound', 'Туалет не найден'))
         }
       } catch (error) {
         console.error('Error loading toilet:', error)
-        setToiletError('Ошибка загрузки данных')
+        setToiletError(t('toilet.loadError', 'Ошибка загрузки данных'))
       } finally {
         setToiletLoading(false)
       }
@@ -231,7 +233,7 @@ export default function ToiletDetailScreen() {
       if (supported) {
         Linking.openURL(url)
       } else {
-        Alert.alert('Ошибка', 'Не удалось открыть карты')
+        Alert.alert(t('toilet.alert.errorTitle', 'Ошибка'), t('toilet.alert.mapsFail', 'Не удалось открыть карты'))
       }
     })
   }
@@ -274,7 +276,7 @@ export default function ToiletDetailScreen() {
     return (
       <YStack flex={1} alignItems="center" justifyContent="center">
         <Spinner size="large" color={colors.primary} />
-        <Text marginTop="$3" color="#757575">Загрузка...</Text>
+        <Text marginTop="$3" color="#757575">{t('toilet.loading', 'Загрузка...')}</Text>
       </YStack>
     )
   }
@@ -283,10 +285,10 @@ export default function ToiletDetailScreen() {
     return (
       <YStack flex={1} alignItems="center" justifyContent="center" padding="$4">
         <Text fontSize={18} color="#757575" textAlign="center" marginBottom="$4">
-          {toiletError || 'Туалет не найден'}
+          {toiletError || t('toilet.notFound', 'Туалет не найден')}
         </Text>
         <Button onPress={() => navigation.goBack()}>
-          <Text>Назад</Text>
+          <Text>{t('toilet.buttons.back', 'Назад')}</Text>
         </Button>
       </YStack>
     )
@@ -321,7 +323,7 @@ export default function ToiletDetailScreen() {
                 fontWeight="600"
                 color={paymentStatus.isFree ? colors.success : colors.error}
               >
-                {paymentStatus.isFree ? 'Бесплатно' : 'Платно'}
+                {paymentStatus.isFree ? t('toilet.payment.free', 'Бесплатно') : t('toilet.payment.paid', 'Платно')}
               </Text>
             </XStack>
 
@@ -392,7 +394,7 @@ export default function ToiletDetailScreen() {
               icon={Navigation}
             >
               <Text color="white" fontWeight="600">
-                Маршрут
+                {t('toilet.buttons.route', 'Маршрут')}
               </Text>
             </Button>
             
@@ -405,7 +407,7 @@ export default function ToiletDetailScreen() {
               icon={MessageSquarePlus}
             >
               <Text color="white" fontWeight="600">
-                Отзыв
+                {t('toilet.buttons.review', 'Отзыв')}
               </Text>
             </Button>
           </XStack>
@@ -438,7 +440,7 @@ export default function ToiletDetailScreen() {
             error={reviewsError}
             onLike={handleUpvote}
             onDislike={handleDownvote}
-            emptyMessage="Отзывов о данном туалете пока нет"
+            emptyMessage={t('toilet.reviews.empty', 'Отзывов о данном туалете пока нет')}
           />
         </YStack>
         </YStack>
@@ -448,9 +450,9 @@ export default function ToiletDetailScreen() {
         <RewardSheet
           open={showRewardSheet}
           onOpenChange={handleRewardSheetChange}
-          title={rewardData.title || 'Спасибо за отзыв!'}
+          title={rewardData.title || t('toilet.reward.title', 'Спасибо за отзыв!')}
           subtitle={rewardData.subtitle}
-          rewardLabel={rewardData.rewardLabel || 'Ваш бонус'}
+          rewardLabel={rewardData.rewardLabel || t('toilet.reward.label', 'Ваш бонус')}
           code={rewardData.code}
           terms={rewardData.terms}
           accentColor={rewardData.accentColor || colors.primary}

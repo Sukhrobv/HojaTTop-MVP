@@ -7,10 +7,10 @@ import MapScreen from '@screens/MapScreen'
 import ToiletDetailScreen from '@screens/ToiletDetailScreen'
 import AddReviewScreen from '@screens/AddReviewScreen'
 import FiltersScreen from '@screens/FiltersScreen'
-// ADD THESE TWO IMPORTS:
 import SettingsScreen from '@screens/SettingsScreen'
 import AuthScreen from '@screens/AuthScreen'
 import { Filters } from '@/types'
+import { useTranslation } from '@/i18n' // Импортируем хук перевода
 
 // Define navigation params type
 export type RootStackParamList = {
@@ -35,6 +35,8 @@ export type RootStackParamList = {
 const Stack = createNativeStackNavigator<RootStackParamList>()
 
 export default function Navigation() {
+  const { t } = useTranslation() // Используем хук для получения функции перевода
+
   return (
     <NavigationContainer>
       <Stack.Navigator
@@ -54,33 +56,32 @@ export default function Navigation() {
           component={MapScreen}
           options={{ 
             title: 'HojaTTop',
-            headerShown: false // Map screen will have custom header
+            headerShown: false // Map screen has custom header
           }}
         />
         <Stack.Screen 
           name="ToiletDetail" 
           component={ToiletDetailScreen}
-          options={{ title: 'Детали' }}
+          options={{ title: t('screen.details') }}
         />
         <Stack.Screen 
           name="AddReview" 
           component={AddReviewScreen}
-          options={{ title: 'Добавить отзыв' }}
+          options={{ title: t('screen.addReview') }}
         />
         <Stack.Screen 
           name="Filters" 
           component={FiltersScreen}
           options={{ 
-            title: 'Фильтры',
-            presentation: 'modal' // Show as modal
+            title: t('screen.filters'),
+            presentation: 'modal' 
           }}
         />
-        {/* ADD THESE TWO SCREENS: */}
         <Stack.Screen 
           name="Settings" 
           component={SettingsScreen}
           options={{ 
-            title: 'Настройки',
+            title: t('screen.settings'),
             presentation: 'modal'
           }}
         />
@@ -88,7 +89,7 @@ export default function Navigation() {
           name="Auth" 
           component={AuthScreen}
           options={{ 
-            title: 'Авторизация',
+            title: t('screen.auth'),
             presentation: 'modal'
           }}
         />

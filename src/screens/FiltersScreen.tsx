@@ -1,23 +1,23 @@
-import React, { useState } from 'react'
+﻿import React, { useState } from 'react'
 import { ScrollView, YStack, XStack, Text, Button, Slider, View, Card } from 'tamagui'
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native'
 import { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import { RootStackParamList } from '@/navigation'
 import { Filters } from '@/types'
 import { Accessibility, Baby, Droplets, DollarSign, Check, X } from 'lucide-react-native'
+import { useTranslation } from '@/i18n'
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Filters'>
 
-// Brand-aligned colors
 const colors = {
-  accessibility: '#2196F3', // Blue
-  babyChanging: '#FF9800',  // Orange
-  ablution: '#00BCD4',      // Light blue
-  free: '#4CAF50',          // Green
+  accessibility: '#2196F3',
+  babyChanging: '#FF9800',
+  ablution: '#00BCD4',
+  free: '#4CAF50',
   primary: '#4ECDC4',
   text: '#2D3436',
   textLight: '#636E72',
-  bg: '#F8F9FA'
+  bg: '#F8F9FA',
 }
 
 type IconType = React.ComponentType<{ size: number; color: string }>
@@ -27,7 +27,7 @@ const FilterCard = ({
   isActive,
   onPress,
   icon: Icon,
-  activeColor
+  activeColor,
 }: {
   label: string
   isActive: boolean
@@ -98,6 +98,7 @@ export default function FiltersScreen() {
   const navigation = useNavigation<NavigationProp>()
   const route = useRoute<RouteProp<RootStackParamList, 'Filters'>>()
   const { initialFilters, onApply } = route.params || {}
+  const { t } = useTranslation()
 
   const [filters, setFilters] = useState<Filters>(
     initialFilters || {
@@ -106,8 +107,8 @@ export default function FiltersScreen() {
       hasAblution: false,
       isFree: false,
       minRating: 0,
-      maxDistance: null
-    }
+      maxDistance: null,
+    },
   )
 
   const toggleFilter = <K extends keyof Filters>(key: K) => {
@@ -130,12 +131,11 @@ export default function FiltersScreen() {
       hasAblution: false,
       isFree: false,
       minRating: 0,
-      maxDistance: null
+      maxDistance: null,
     })
   }
 
-  const distanceSliderValue =
-    filters.maxDistance === null || filters.maxDistance === undefined ? 10 : filters.maxDistance
+  const distanceSliderValue = filters.maxDistance === null || filters.maxDistance === undefined ? 10 : filters.maxDistance
   const handleDistanceChange = (value: number) => {
     updateValue('maxDistance', value >= 10 ? null : value)
   }
@@ -146,7 +146,7 @@ export default function FiltersScreen() {
     filters.hasAblution,
     filters.isFree,
     (filters.minRating ?? 0) > 0,
-    filters.maxDistance !== null && filters.maxDistance !== undefined
+    filters.maxDistance !== null && filters.maxDistance !== undefined,
   ].filter(Boolean).length
 
   return (
@@ -155,31 +155,31 @@ export default function FiltersScreen() {
         <YStack padding="$4" space="$6">
           {/* GRID of feature filters */}
           <YStack>
-            <SectionHeader title="Что ищем?" />
+            <SectionHeader title={t('filters.header.search', 'Что ищем?')} />
             <XStack flexWrap="wrap" justifyContent="space-between" gap="$3">
               <FilterCard
-                label="Для инвалидов"
+                label={t('filters.card.accessibility', 'Для инвалидов')}
                 icon={Accessibility}
                 activeColor={colors.accessibility}
                 isActive={!!filters.isAccessible}
                 onPress={() => toggleFilter('isAccessible')}
               />
               <FilterCard
-                label="С детьми"
+                label={t('filters.card.baby', 'С детьми')}
                 icon={Baby}
                 activeColor={colors.babyChanging}
                 isActive={!!filters.hasBabyChanging}
                 onPress={() => toggleFilter('hasBabyChanging')}
               />
               <FilterCard
-                label="Омовение"
+                label={t('filters.card.ablution', 'Омовение')}
                 icon={Droplets}
                 activeColor={colors.ablution}
                 isActive={!!filters.hasAblution}
                 onPress={() => toggleFilter('hasAblution')}
               />
               <FilterCard
-                label="Бесплатно"
+                label={t('filters.card.free', 'Бесплатно')}
                 icon={DollarSign}
                 activeColor={colors.free}
                 isActive={!!filters.isFree}
@@ -192,10 +192,10 @@ export default function FiltersScreen() {
           <YStack backgroundColor="white" padding="$4" borderRadius="$5" elevation={1}>
             <XStack justifyContent="space-between" marginBottom="$4">
               <Text fontWeight="600" fontSize={16}>
-                Минимальный рейтинг
+                {t('filters.header.rating', 'Минимальный рейтинг')}
               </Text>
               <Text fontWeight="bold" color={colors.primary} fontSize={16}>
-                {(filters.minRating ?? 0) > 0 ? `${filters.minRating} ⭐` : 'Не важно'}
+                {(filters.minRating ?? 0) > 0 ? `${filters.minRating} ⭐` : t('filters.rating.none', 'Не важно')}
               </Text>
             </XStack>
             <Slider
@@ -211,10 +211,10 @@ export default function FiltersScreen() {
             </Slider>
             <XStack justifyContent="space-between" marginTop="$2">
               <Text fontSize={12} color={colors.textLight}>
-                Любой
+                {t('filters.rating.left', 'Любой')}
               </Text>
               <Text fontSize={12} color={colors.textLight}>
-                Только 5.0
+                {t('filters.rating.right', 'Только 5.0')}
               </Text>
             </XStack>
           </YStack>
@@ -223,10 +223,12 @@ export default function FiltersScreen() {
           <YStack backgroundColor="white" padding="$4" borderRadius="$5" elevation={1}>
             <XStack justifyContent="space-between" marginBottom="$4">
               <Text fontWeight="600" fontSize={16}>
-                Расстояние
+                {t('filters.header.distance', 'Расстояние')}
               </Text>
               <Text fontWeight="bold" color={colors.primary} fontSize={16}>
-                {filters.maxDistance ? `до ${filters.maxDistance} км` : 'Весь город'}
+                {filters.maxDistance
+                  ? t('filters.distance.value', 'до {km} км').replace('{km}', `${filters.maxDistance}`)
+                  : t('filters.distance.all', 'Весь город')}
               </Text>
             </XStack>
             <Slider
@@ -243,10 +245,10 @@ export default function FiltersScreen() {
             </Slider>
             <XStack justifyContent="space-between" marginTop="$2">
               <Text fontSize={12} color={colors.textLight}>
-                Рядом
+                {t('filters.distance.left', 'Рядом')}
               </Text>
               <Text fontSize={12} color={colors.textLight}>
-                ∞ Не ограничено
+                {t('filters.distance.right', '∞ Не ограничено')}
               </Text>
             </XStack>
           </YStack>
@@ -278,7 +280,7 @@ export default function FiltersScreen() {
               onPress={handleReset}
               icon={<X size={18} />}
             >
-              Сброс
+              {t('filters.buttons.reset', 'Сброс')}
             </Button>
           )}
           <Button
@@ -289,7 +291,7 @@ export default function FiltersScreen() {
             elevation={2}
           >
             <Text color="white" fontWeight="bold" fontSize={16}>
-              Показать {activeCount > 0 ? `(${activeCount})` : ''}
+              {t('filters.buttons.show', 'Показать')} {activeCount > 0 ? `(${activeCount})` : ''}
             </Text>
           </Button>
         </XStack>

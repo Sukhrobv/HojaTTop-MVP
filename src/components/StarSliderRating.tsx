@@ -2,6 +2,7 @@ import React, { useRef } from 'react'
 import { YStack, XStack, Text } from 'tamagui'
 import { Pressable, View, PanResponder, Dimensions } from 'react-native'
 import { Star } from 'lucide-react-native'
+import { useTranslation } from '@/i18n'
 
 // Color scheme
 const colors = {
@@ -24,6 +25,7 @@ export default function StarSliderRating({
   maxStars = 10,
   starSize = 28 // Slightly smaller to fit in one row
 }: StarSliderRatingProps) {
+  const { t } = useTranslation()
   const containerRef = useRef<View>(null)
   const screenWidth = Dimensions.get('window').width
   const containerWidth = screenWidth - 32 // Account for padding
@@ -112,7 +114,7 @@ export default function StarSliderRating({
       
       {/* Helper text */}
       <Text fontSize={12} color="$colorSubtle" textAlign="center">
-        Нажмите или проведите пальцем по звездочкам
+        {t('rating.slider.helper')}
       </Text>
     </YStack>
   )

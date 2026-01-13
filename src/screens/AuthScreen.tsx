@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+﻿import React, { useState } from 'react'
 import { ScrollView, YStack, XStack, Text, Button, Input, Spinner } from 'tamagui'
 import { Alert, KeyboardAvoidingView, Platform } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
@@ -13,6 +13,7 @@ import {
 } from 'lucide-react-native'
 import { RootStackParamList } from '@/navigation'
 import { useAuth } from '@/hooks/useAuth'
+import { useTranslation } from '@/i18n'
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Auth'>
 
@@ -21,6 +22,7 @@ type AuthMode = 'choose' | 'login' | 'register'
 export default function AuthScreen() {
   const navigation = useNavigation<NavigationProp>()
   const { register, login, isAuthenticated, loading: authLoading } = useAuth()
+  const { t } = useTranslation()
   
   // Form state
   const [authMode, setAuthMode] = useState<AuthMode>('choose')
@@ -36,7 +38,7 @@ export default function AuthScreen() {
       <YStack flex={1} alignItems="center" justifyContent="center" padding="$4" space="$4">
         <CheckCircle size={64} color="#4CAF50" />
         <Text fontSize={20} fontWeight="bold" textAlign="center" color="#1A1A1A">
-          Вы уже авторизованы!
+          {t('auth.already', 'Вы уже авторизованы!')}
         </Text>
         <Button 
           size="$5" 
@@ -44,7 +46,7 @@ export default function AuthScreen() {
           onPress={() => navigation.goBack()}
         >
           <Text color="white" fontWeight="600">
-            Вернуться назад
+            {t('auth.back', 'Вернуться назад')}
           </Text>
         </Button>
       </YStack>
@@ -54,12 +56,12 @@ export default function AuthScreen() {
   // Login handler
   const handleLogin = async () => {
     if (!userName.trim()) {
-      Alert.alert('Ошибка', 'Введите имя пользователя')
+      Alert.alert(t('auth.login.error.title', 'Ошибка входа'), t('auth.login.missingUser', 'Введите имя пользователя'))
       return
     }
 
     if (!password) {
-      Alert.alert('Ошибка', 'Введите пароль')
+      Alert.alert(t('auth.login.error.title', 'Ошибка входа'), t('auth.login.missingPass', 'Введите пароль'))
       return
     }
 
@@ -73,19 +75,22 @@ export default function AuthScreen() {
 
       if (result.success) {
         Alert.alert(
-          'С возвращением!',
-          `Рады видеть вас снова, ${result.user?.userName}!`,
+          t('auth.login.success.title', 'С возвращением!'),
+          t('auth.login.success.body', 'Рады видеть вас снова, {name}!').replace('{name}', result.user?.userName || ''),
           [{
             text: 'OK',
             onPress: () => navigation.goBack()
           }]
         )
       } else {
-        Alert.alert('Ошибка входа', result.error || 'Неверное имя пользователя или пароль')
+        Alert.alert(
+          t('auth.login.error.title', 'Ошибка входа'),
+          result.error || t('auth.login.error.body', 'Неверное имя пользователя или пароль')
+        )
       }
     } catch (error) {
       console.error('Login error:', error)
-      Alert.alert('Ошибка', 'Произошла ошибка при входе')
+      Alert.alert(t('auth.login.error.title', 'Ошибка входа'), t('auth.login.error.generic', 'Произошла ошибка при входе'))
     } finally {
       setSubmitting(false)
     }
@@ -94,22 +99,22 @@ export default function AuthScreen() {
   const handleRegister = async () => {
     // Validation
     if (!userName.trim()) {
-      Alert.alert('Ошибка', 'Введите имя пользователя')
+      Alert.alert(t('auth.register.error.title', 'Ошибка регистрации'), t('auth.login.missingUser', 'Введите имя пользователя'))
       return
     }
 
     if (userName.trim().length < 2) {
-      Alert.alert('Ошибка', 'Имя пользователя должно содержать минимум 2 символа')
+      Alert.alert(t('auth.register.error.title', 'Ошибка регистрации'), t('auth.register.userShort', 'Имя пользователя должно содержать минимум 2 символа'))
       return
     }
 
     if (!password || password.length < 6) {
-      Alert.alert('Ошибка', 'Пароль должен содержать минимум 6 символов')
+      Alert.alert(t('auth.register.error.title', 'Ошибка регистрации'), t('auth.register.passShort', 'Пароль должен содержать минимум 6 символов'))
       return
     }
 
     if (showEmailField && email.trim() && !isValidEmail(email.trim())) {
-      Alert.alert('Ошибка', 'Введите корректный email')
+      Alert.alert(t('auth.register.error.title', 'Ошибка регистрации'), t('auth.register.emailInvalid', 'Введите корректный email'))
       return
     }
 
@@ -124,19 +129,25 @@ export default function AuthScreen() {
 
       if (result.success) {
         Alert.alert(
-          'Добро пожаловать!',
-          `Регистрация прошла успешно, ${result.user?.userName}!`,
+          t('auth.register.success.title', 'Добро пожаловать!'),
+          t('auth.register.success.body', 'Регистрация прошла успешно, {name}!').replace('{name}', result.user?.userName || ''),
           [{
             text: 'OK',
             onPress: () => navigation.goBack()
           }]
         )
       } else {
-        Alert.alert('Ошибка регистрации', result.error || 'Неизвестная ошибка')
+        Alert.alert(
+          t('auth.register.error.title', 'Ошибка регистрации'),
+          result.error || t('auth.register.error.body', 'Неизвестная ошибка')
+        )
       }
     } catch (error) {
       console.error('Registration error:', error)
-      Alert.alert('Ошибка', 'Произошла ошибка при регистрации')
+      Alert.alert(
+        t('auth.register.error.title', 'Ошибка регистрации'),
+        t('auth.register.error.generic', 'Произошла ошибка при регистрации')
+      )
     } finally {
       setSubmitting(false)
     }
@@ -171,10 +182,10 @@ export default function AuthScreen() {
           
           <YStack alignItems="center" space="$2">
             <Text fontSize={24} fontWeight="bold" textAlign="center" color="#1A1A1A">
-              Добро пожаловать!
+              {t('auth.choose.title', 'Добро пожаловать!')}
             </Text>
             <Text fontSize={16} color="#666666" textAlign="center">
-              Выберите действие для продолжения
+              {t('auth.choose.subtitle', 'Выберите действие для продолжения')}
             </Text>
           </YStack>
         </YStack>
@@ -189,7 +200,7 @@ export default function AuthScreen() {
             icon={LogIn}
           >
             <Text color="white" fontWeight="600">
-              Войти в аккаунт
+              {t('auth.choose.login', 'Войти в аккаунт')}
             </Text>
           </Button>
           
@@ -201,7 +212,7 @@ export default function AuthScreen() {
             icon={UserPlus}
           >
             <Text color="white" fontWeight="600">
-              Создать профиль
+              {t('auth.choose.register', 'Создать профиль')}
             </Text>
           </Button>
           
@@ -212,13 +223,13 @@ export default function AuthScreen() {
             borderColor="$borderColor"
           >
             <Text color="#666666">
-              Пропустить (остаться анонимным)
+              {t('auth.choose.skip', 'Пропустить (остаться анонимным)')}
             </Text>
           </Button>
         </YStack>
 
         {/* Info */}
-        <YStack 
+        <YStack
           backgroundColor="#4ECDC415"
           borderRadius="$3"
           padding="$3"
@@ -229,12 +240,12 @@ export default function AuthScreen() {
             <AlertCircle size={16} color="#4ECDC4" style={{ marginTop: 2 }} />
             <YStack flex={1} space="$1">
               <Text fontSize={14} fontWeight="600" color="#1A1A1A">
-                Зачем нужна регистрация?
+                {t('auth.choose.why.title', 'Зачем нужна регистрация?')}
               </Text>
               <Text fontSize={13} color="#666666" lineHeight={18}>
-                • Ваши отзывы будут подписаны вашим именем{'\n'}
-                • Неограниченное количество отзывов{'\n'}
-                • Возможность переключиться в анонимный режим
+                - {t('auth.choose.why.item1', 'Ваши отзывы будут подписаны вашим именем')}
+                {'\n'}- {t('auth.choose.why.item2', 'Неограниченное количество отзывов')}
+                {'\n'}- {t('auth.choose.why.item3', 'Возможность переключиться в анонимный режим')}
               </Text>
             </YStack>
           </XStack>
@@ -275,12 +286,12 @@ export default function AuthScreen() {
             
             <YStack alignItems="center" space="$2">
               <Text fontSize={24} fontWeight="bold" textAlign="center" color="#1A1A1A">
-                {authMode === 'login' ? 'Вход в аккаунт' : 'Создание профиля'}
+                {authMode === 'login' ? t('auth.form.loginTitle', 'Вход в аккаунт') : t('auth.form.registerTitle', 'Создание профиля')}
               </Text>
               <Text fontSize={16} color="#666666" textAlign="center">
                 {authMode === 'login' 
-                  ? 'Введите данные для входа'
-                  : 'Создайте профиль для добавления отзывов'
+                  ? t('auth.form.loginSubtitle', 'Введите данные для входа')
+                  : t('auth.form.registerSubtitle', 'Создайте профиль для добавления отзывов')
                 }
               </Text>
             </YStack>
@@ -294,11 +305,15 @@ export default function AuthScreen() {
               <XStack alignItems="center" space="$2">
                 <User size={16} color="#666666" />
                 <Text fontSize={16} fontWeight="600" color="#1A1A1A">
-                  Имя пользователя *
+                  {t('auth.field.username', 'Имя пользователя *')}
                 </Text>
               </XStack>
               <Input
-                placeholder={authMode === 'login' ? 'Ваше имя' : 'Введите ваше имя'}
+                placeholder={
+                  authMode === 'login'
+                    ? t('auth.field.username.placeholder.login', 'Ваше имя')
+                    : t('auth.field.username.placeholder.register', 'Введите ваше имя')
+                }
                 value={userName}
                 onChangeText={setUserName}
                 size="$5"
@@ -312,8 +327,8 @@ export default function AuthScreen() {
               />
               <Text fontSize={12} color="#666666">
                 {authMode === 'login' 
-                  ? 'Введите имя, которое использовали при регистрации'
-                  : 'Это имя будет отображаться в ваших отзывах'
+                  ? t('auth.field.username.hint.login', 'Введите имя, которое использовали при регистрации')
+                  : t('auth.field.username.hint.register', 'Это имя будет отображаться в ваших отзывах')
                 }
               </Text>
             </YStack>
@@ -323,11 +338,11 @@ export default function AuthScreen() {
               <XStack alignItems="center" space="$2">
                 <User size={16} color="#666666" />
                 <Text fontSize={16} fontWeight="600" color="#1A1A1A">
-                  Пароль *
+                  {t('auth.field.password', 'Пароль *')}
                 </Text>
               </XStack>
               <Input
-                placeholder="Введите пароль"
+                placeholder={t('auth.field.password.placeholder', 'Введите пароль')}
                 value={password}
                 onChangeText={setPassword}
                 size="$5"
@@ -338,7 +353,7 @@ export default function AuthScreen() {
                 returnKeyType="done"
               />
               <Text fontSize={12} color="#666666">
-                Минимум 6 символов
+                {t('auth.field.password.hint', 'Минимум 6 символов')}
               </Text>
             </YStack>
 
@@ -354,7 +369,9 @@ export default function AuthScreen() {
                   <XStack alignItems="center" space="$2">
                     <Mail size={16} color="#666666" />
                     <Text color="#1A1A1A">
-                      {showEmailField ? 'Скрыть email' : 'Добавить email (необязательно)'}
+                      {showEmailField
+                        ? t('auth.field.email.toggle.hide', 'Скрыть email')
+                        : t('auth.field.email.toggle.show', 'Добавить email (необязательно)')}
                     </Text>
                   </XStack>
                 </Button>
@@ -375,7 +392,7 @@ export default function AuthScreen() {
                       returnKeyType="done"
                     />
                     <Text fontSize={12} color="#666666">
-                      Email нужен только для восстановления аккаунта
+                      {t('auth.field.email.hint', 'Email нужен только для восстановления аккаунта')}
                     </Text>
                   </>
                 )}
@@ -395,12 +412,16 @@ export default function AuthScreen() {
                 <XStack alignItems="center" space="$2">
                   <Spinner size="small" color="white" />
                   <Text color="white" fontWeight="600">
-                    {authMode === 'login' ? 'Вход...' : 'Создание...'}
+                    {authMode === 'login'
+                      ? t('auth.submit.login', 'Вход...')
+                      : t('auth.submit.register', 'Создание...')}
                   </Text>
                 </XStack>
               ) : (
                 <Text color={isFormValid ? "white" : "#666666"} fontWeight="600">
-                  {authMode === 'login' ? 'Войти' : 'Создать профиль'}
+                  {authMode === 'login'
+                    ? t('auth.submit.login.cta', 'Войти')
+                    : t('auth.submit.register.cta', 'Создать профиль')}
                 </Text>
               )}
             </Button>
@@ -408,7 +429,9 @@ export default function AuthScreen() {
             {/* Switch mode */}
             <YStack alignItems="center" space="$2">
               <Text fontSize={14} color="#666666">
-                {authMode === 'login' ? 'Нет аккаунта?' : 'Уже есть аккаунт?'}
+                {authMode === 'login'
+                  ? t('auth.switch.noAccount', 'Нет аккаунта?')
+                  : t('auth.switch.haveAccount', 'Уже есть аккаунт?')}
               </Text>
               <Button 
                 variant="outlined"
@@ -417,7 +440,9 @@ export default function AuthScreen() {
                 borderColor="$borderColor"
               >
                 <Text color="#4ECDC4" fontWeight="600">
-                  {authMode === 'login' ? 'Создать аккаунт' : 'Войти в существующий'}
+                  {authMode === 'login'
+                    ? t('auth.switch.toRegister', 'Создать аккаунт')
+                    : t('auth.switch.toLogin', 'Войти в существующий')}
                 </Text>
               </Button>
             </YStack>
@@ -430,7 +455,7 @@ export default function AuthScreen() {
               borderColor="$borderColor"
             >
               <Text color="#666666">
-                ← Назад к выбору
+                {t('auth.backToChoose', '← Назад к выбору')}
               </Text>
             </Button>
           </YStack>
@@ -439,3 +464,5 @@ export default function AuthScreen() {
     </KeyboardAvoidingView>
   )
 }
+
+

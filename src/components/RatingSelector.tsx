@@ -2,6 +2,7 @@ import React from 'react'
 import { XStack, YStack, Text } from 'tamagui'
 import { Pressable } from 'react-native'
 import { Star } from 'lucide-react-native'
+import { useTranslation } from '@/i18n'
 
 interface RatingSelectorProps {
   value: number
@@ -9,6 +10,8 @@ interface RatingSelectorProps {
 }
 
 export default function RatingSelector({ value, onChange }: RatingSelectorProps) {
+  const { t } = useTranslation()
+  
   // Convert 10-point scale to 5-point scale for UI (1-5)
   // Internal value is still 0-10 for compatibility
   const selectedRating = Math.ceil(value / 2)
@@ -20,12 +23,12 @@ export default function RatingSelector({ value, onChange }: RatingSelectorProps)
 
   const getRatingLabel = (rating: number) => {
     switch (rating) {
-      case 1: return 'Ужасно'
-      case 2: return 'Плохо'
-      case 3: return 'Нормально'
-      case 4: return 'Хорошо'
-      case 5: return 'Отлично'
-      default: return 'Оцените туалет'
+      case 1: return t('rating.label.1')
+      case 2: return t('rating.label.2')
+      case 3: return t('rating.label.3')
+      case 4: return t('rating.label.4')
+      case 5: return t('rating.label.5')
+      default: return t('rating.placeholder')
     }
   }
 

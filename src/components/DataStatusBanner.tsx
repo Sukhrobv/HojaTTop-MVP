@@ -1,6 +1,7 @@
 import React from 'react'
 import { XStack, Text, Button } from 'tamagui'
 import { DataSource } from '@/types'
+import { useTranslation } from '@/i18n'
 
 interface DataStatusBannerProps {
   dataSource: DataSource
@@ -19,6 +20,7 @@ export default function DataStatusBanner({
   onRefresh,
   loading = false
 }: DataStatusBannerProps) {
+  const { t } = useTranslation()
   
   // Don't show banner if data is fresh from network
   if (dataSource === 'network' && !isStale) {
@@ -34,12 +36,12 @@ export default function DataStatusBanner({
     const minutes = Math.floor(diff / (1000 * 60))
     const hours = Math.floor(minutes / 60)
     
-    if (minutes < 1) return 'только что'
-    if (minutes < 60) return `${minutes} мин назад`
-    if (hours < 24) return `${hours} ч назад`
+    if (minutes < 1) return t('banner.time.justNow')
+    if (minutes < 60) return t('banner.time.minAgo').replace('{min}', minutes.toString())
+    if (hours < 24) return t('banner.time.hourAgo').replace('{hour}', hours.toString())
     
     const days = Math.floor(hours / 24)
-    return `${days} дн назад`
+    return t('banner.time.dayAgo').replace('{day}', days.toString())
   }
 
   const getStatusColor = () => {
@@ -56,11 +58,11 @@ export default function DataStatusBanner({
   const getStatusText = () => {
     switch (dataSource) {
       case 'cache':
-        return isStale ? 'Офлайн данные' : 'Кэшированные данные'
+        return isStale ? t('banner.status.offline') : t('banner.status.cached')
       case 'none':
-        return 'Нет данных'
+        return t('banner.status.noData')
       default:
-        return 'Онлайн'
+        return t('banner.status.online')
     }
   }
 
@@ -90,7 +92,7 @@ export default function DataStatusBanner({
           {getStatusText()}
         </Text>
         <Text color="white" fontSize={12} opacity={0.8}>
-          • {toiletsCount} туалетов
+          • {t('banner.count').replace('{count}', toiletsCount.toString())}
         </Text>
         {lastUpdated && (
           <Text color="white" fontSize={12} opacity={0.8}>
@@ -108,7 +110,7 @@ export default function DataStatusBanner({
           disabled={loading}
         >
           <Text color="white" fontSize={12} fontWeight="600">
-            {loading ? 'Обновление...' : 'Обновить'}
+            {loading ? t('banner.btn.updating') : t('banner.btn.update')}
           </Text>
         </Button>
       )}

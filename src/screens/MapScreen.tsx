@@ -12,12 +12,15 @@ import { Coordinates, Filters } from '@/types'
 import ToiletMapNative from '@components/ToiletMapNative'
 import DataStatusBanner from '@components/DataStatusBanner'
 import { Search, Locate, List, SlidersHorizontal, Settings } from 'lucide-react-native'
+import { useTranslation } from '@/i18n' // Импорт хука
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Map'>
 
 export default function MapScreen() {
   const navigation = useNavigation<NavigationProp>()
   const insets = useSafeAreaInsets()
+  const { t } = useTranslation() // Инициализация переводов
+
   const [location, setLocation] = useState<Coordinates | null>(null)
   const [locationLoading, setLocationLoading] = useState(false)
   const [showToiletsList, setShowToiletsList] = useState(false)
@@ -35,9 +38,8 @@ export default function MapScreen() {
     cacheInfo,
     activeFilters,
     applyToiletFilters
-  } = useNearbyToilets(location, 5000) // 5000km = show all toilets
+  } = useNearbyToilets(location, 5000) 
 
-  // Filter toilets based on search query - Memoized to prevent map re-renders
   const displayedToilets = useMemo(() => filteredToilets.filter(toilet => 
     toilet.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     toilet.address.toLowerCase().includes(searchQuery.toLowerCase())
@@ -57,7 +59,6 @@ export default function MapScreen() {
       const currentLocation = await getCurrentLocation()
       if (currentLocation) {
         setLocation(currentLocation)
-        // Force refresh when getting location to get updated nearby toilets
         await forceRefresh()
       }
     } finally {
@@ -71,20 +72,8 @@ export default function MapScreen() {
     <YStack flex={1} backgroundColor="$background">
       <StatusBar style="light" />
       
-      {/* Header with safe area */}
+      {/* Header */}
       <YStack backgroundColor="#4ECDC4" paddingTop={insets.top}>
-        {/* <XStack 
-          paddingVertical="$3" 
-          paddingHorizontal="$4"
-          alignItems="center"
-          justifyContent="space-between"
-        >
-          <Text color="white" fontSize={24} fontWeight="bold">
-            HojaTTop
-          </Text>
-        </XStack> */}
-
-        {/* Search Bar */}
         <View paddingHorizontal="$4" paddingBottom="$3">
           <XStack 
             backgroundColor="white" 
@@ -92,11 +81,12 @@ export default function MapScreen() {
             paddingHorizontal="$3" 
             height={40} 
             alignItems="center"
+            marginTop="$2"
           >
             <Search size={20} color="#999" />
             <Input
               flex={1}
-              placeholder="Поиск..."
+              placeholder={t('map.search.placeholder')} // Локализация
               value={searchQuery}
               onChangeText={setSearchQuery}
               backgroundColor="transparent"
@@ -129,14 +119,14 @@ export default function MapScreen() {
         {toiletsLoading ? (
           <YStack flex={1} alignItems="center" justifyContent="center">
             <Spinner size="large" color="#4ECDC4" />
-            <Text marginTop="$3" color="#757575">Загрузка туалетов...</Text>
+            <Text marginTop="$3" color="#757575">{t('map.loading')}</Text>
           </YStack>
         ) : error ? (
           <YStack flex={1} alignItems="center" justifyContent="center">
             <Text fontSize={18} color="#757575" marginBottom="$4">{error}</Text>
             <Pressable onPress={refresh}>
               <Text color="#4ECDC4" textDecorationLine="underline">
-                Попробовать снова
+                {t('map.error.retry')}
               </Text>
             </Pressable>
           </YStack>
@@ -148,7 +138,7 @@ export default function MapScreen() {
               onToiletPress={handleToiletPress}
             />
 
-            {/* Toilets List (conditional) */}
+            {/* Toilets List (Horizontal) */}
             {showToiletsList && (
               <ScrollView 
                 style={{
@@ -196,7 +186,7 @@ export default function MapScreen() {
                         </Text>
                       </XStack>
                       <Text fontSize={11} color={toilet.features.isFree ? 'green' : '#FF6B6B'} marginTop="$1">
-                        {toilet.features.isFree ? 'Бесплатно' : 'Платно'}
+                        {toilet.features.isFree ? t('toilet.payment.free') : t('toilet.payment.paid')}
                       </Text>
                     </Pressable>
                   ))}
@@ -216,19 +206,7 @@ export default function MapScreen() {
           {/* Settings Button */}
           <Pressable
             onPress={handleSettingsPress}
-            style={{
-              backgroundColor: '#4ECDC4',
-              borderRadius: 30,
-              width: 50,
-              height: 50,
-              justifyContent: 'center',
-              alignItems: 'center',
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.25,
-              shadowRadius: 3.84,
-              elevation: 5,
-            }}
+            style={fabStyle}
           >
             <Settings size={24} color="white" />
           </Pressable>
@@ -239,23 +217,11 @@ export default function MapScreen() {
               initialFilters: activeFilters,
               onApply: (filters: Filters) => applyToiletFilters(filters)
             })}
-            style={{
-              backgroundColor: '#4ECDC4',
-              borderRadius: 30,
-              width: 50,
-              height: 50,
-              justifyContent: 'center',
-              alignItems: 'center',
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.25,
-              shadowRadius: 3.84,
-              elevation: 5,
-            }}
+            style={fabStyle}
           >
             <View>
               <SlidersHorizontal size={24} color="white" />
-              {/* Active filters indicator badge */}
+              {/* Badge */}
               {(() => {
                 const count = [
                   activeFilters.isAccessible,
@@ -267,18 +233,7 @@ export default function MapScreen() {
                 ].filter(Boolean).length
                 
                 return count > 0 ? (
-                  <View style={{
-                    position: 'absolute',
-                    top: -8,
-                    right: -8,
-                    backgroundColor: '#FF6B6B',
-                    borderRadius: 10,
-                    minWidth: 18,
-                    height: 18,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    paddingHorizontal: 4,
-                  }}>
+                  <View style={badgeStyle}>
                     <Text style={{ color: 'white', fontSize: 11, fontWeight: 'bold' }}>
                       {count}
                     </Text>
@@ -288,44 +243,19 @@ export default function MapScreen() {
             </View>
           </Pressable>
 
-          {/* List Toggle Button */}
+          {/* List Toggle */}
           <Pressable
             onPress={() => setShowToiletsList(!showToiletsList)}
-            style={{
-              backgroundColor: '#4ECDC4',
-              borderRadius: 30,
-              width: 50,
-              height: 50,
-              justifyContent: 'center',
-              alignItems: 'center',
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.25,
-              shadowRadius: 3.84,
-              elevation: 5,
-            }}
+            style={fabStyle}
           >
             <List size={24} color="white" />
           </Pressable>
 
-          {/* My Location Button */}
+          {/* My Location */}
           <Pressable
             onPress={handleMyLocationPress}
             disabled={locationLoading}
-            style={{
-              backgroundColor: '#4ECDC4',
-              borderRadius: 30,
-              width: 50,
-              height: 50,
-              justifyContent: 'center',
-              alignItems: 'center',
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.25,
-              shadowRadius: 3.84,
-              elevation: 5,
-              opacity: locationLoading ? 0.7 : 1,
-            }}
+            style={{...fabStyle, opacity: locationLoading ? 0.7 : 1}}
           >
             {locationLoading ? (
               <Spinner size="small" color="white" />
@@ -335,7 +265,7 @@ export default function MapScreen() {
           </Pressable>
         </YStack>
 
-        {/* Status Info - динамическое позиционирование */}
+        {/* Status Info Badge */}
         <View style={{
           position: 'absolute',
           bottom: showToiletsList ? 150 : 30,
@@ -351,15 +281,43 @@ export default function MapScreen() {
           elevation: 3,
         }}>
           <Text color="white" fontSize={12} fontWeight="bold">
-            Найдено: {displayedToilets.length} точек
+            {t('map.status.found').replace('{count}', displayedToilets.length.toString())}
           </Text>
           {dataSource === 'cache' && (
             <Text color="white" fontSize={10} opacity={0.9}>
-              Офлайн данные
+              {t('map.status.offline')}
             </Text>
           )}
         </View>
       </View>
     </YStack>
   )
+}
+
+// Styles reused for clean code
+const fabStyle = {
+  backgroundColor: '#4ECDC4',
+  borderRadius: 30,
+  width: 50,
+  height: 50,
+  justifyContent: 'center' as const,
+  alignItems: 'center' as const,
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.25,
+  shadowRadius: 3.84,
+  elevation: 5,
+}
+
+const badgeStyle = {
+  position: 'absolute' as const,
+  top: -8,
+  right: -8,
+  backgroundColor: '#FF6B6B',
+  borderRadius: 10,
+  minWidth: 18,
+  height: 18,
+  alignItems: 'center' as const,
+  justifyContent: 'center' as const,
+  paddingHorizontal: 4,
 }

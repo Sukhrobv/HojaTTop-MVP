@@ -16,6 +16,7 @@ import {
   Star
 } from 'lucide-react-native'
 import { Review } from '@/types'
+import { useTranslation } from '@/i18n' // Импорт хука
 
 // Color scheme
 const colors = {
@@ -26,15 +27,12 @@ const colors = {
   error: '#F44336',
   accent: '#9C27B0',
   neutral: '#6E7AA1',
-  // Star rating colors
   starGold: '#FFD700',
   starFilled: '#FFA500',
-  // GitHub-style discussion color
   discussionPurple: '#8B5CF6',
-  // UNIFIED feature-specific colors (same everywhere)
-  accessibility: '#2196F3', // Blue for accessibility
-  babyChanging: '#FF9800',  // Orange for baby changing
-  ablution: '#00BCD4',      // Light blue for ablution
+  accessibility: '#2196F3',
+  babyChanging: '#FF9800',
+  ablution: '#00BCD4',
   avatarBg: '#E8EEF8'
 }
 
@@ -42,9 +40,9 @@ const colors = {
 export const RewardSheet = ({
   open,
   onOpenChange,
-  title = 'Спасибо за отзыв!',
+  title, // Optional, will use default from t() if undefined
   subtitle,
-  rewardLabel = 'Ваш бонус',
+  rewardLabel,
   code,
   terms,
   accentColor = colors.primary,
@@ -62,6 +60,7 @@ export const RewardSheet = ({
   icon?: any
   onCopy?: (code: string) => Promise<void> | void
 }) => {
+  const { t } = useTranslation()
   const [copied, setCopied] = useState(false)
 
   const handleCopy = async () => {
@@ -103,7 +102,7 @@ export const RewardSheet = ({
             </YStack>
             <YStack flex={1} space="$1">
               <Text fontSize={18} fontWeight="700" color="$color">
-                {title}
+                {title || t('components.reward.defaultTitle')}
               </Text>
               {subtitle && (
                 <Text fontSize={14} color="$colorSubtle">
@@ -122,12 +121,12 @@ export const RewardSheet = ({
             borderColor="$borderColor"
           >
             <Text fontSize={12} color="$colorSubtle" textTransform="uppercase" letterSpacing={0.5}>
-              {rewardLabel}
+              {rewardLabel || t('components.reward.defaultLabel')}
             </Text>
 
             <XStack alignItems="center" justifyContent="space-between" space="$2">
               <Text fontSize={20} fontWeight="700" color="$color" flexShrink={1}>
-                {code || 'Покажите экран сотруднику'}
+                {code || t('components.reward.placeholder')}
               </Text>
 
               {code && (
@@ -165,7 +164,7 @@ export const RewardSheet = ({
             borderRadius="$4"
           >
             <Text color="white" fontWeight="700">
-              Закрыть
+              {t('components.reward.close')}
             </Text>
           </Button>
         </YStack>
@@ -237,17 +236,14 @@ export const RatingStars = ({
 
   return (
     <XStack alignItems="center">
-      {/* Full stars */}
       {Array(fullStars).fill(0).map((_, i) => (
         <Text key={`full-${i}`} fontSize={size} color="#FFD700">⭐</Text>
       ))}
       
-      {/* Half star */}
       {hasHalfStar && (
         <Text fontSize={size} color="#FFD700">⭐</Text>
       )}
       
-      {/* Empty stars */}
       {Array(emptyStars).fill(0).map((_, i) => (
         <Text key={`empty-${i}`} fontSize={size} color="#E0E0E0">☆</Text>
       ))}
@@ -305,7 +301,7 @@ export const ProgressRating = ({
   )
 }
 
-// Feature counter component (UPDATED: circular with badge number in corner)
+// Feature counter component
 export const FeatureCounter = ({ 
   icon: Icon, 
   count,
@@ -315,7 +311,6 @@ export const FeatureCounter = ({
   count: number
   type?: 'accessibility' | 'babyChanging' | 'ablution' | 'default'
 }) => {
-  // Get feature-specific color
   const getFeatureColor = () => {
     switch (type) {
       case 'accessibility': return colors.accessibility
@@ -335,7 +330,7 @@ export const FeatureCounter = ({
       width={60}
       height={60}
       backgroundColor={isActive ? featureColor + '20' : '$backgroundPress'}
-      borderRadius={30} // Fully circular
+      borderRadius={30}
       borderWidth={2}
       borderColor={isActive ? featureColor + '40' : '$borderColor'}
       position="relative"
@@ -345,7 +340,6 @@ export const FeatureCounter = ({
         color={isActive ? featureColor : colors.neutral} 
       />
       
-      {/* Badge with count in corner */}
       {isActive && (
         <YStack
           position="absolute"
@@ -373,7 +367,6 @@ export const FeatureCounter = ({
   )
 }
 
-// NEW: Compact horizontal rating display (UPDATED: centered, GitHub discussion icon, gold stars)
 export const CompactRatingDisplay = ({ 
   rating,
   reviewCount = 0,
@@ -383,9 +376,8 @@ export const CompactRatingDisplay = ({
   reviewCount?: number
   size?: 'small' | 'normal' | 'large'
 }) => {
-  const ratingValue = (rating * 2).toFixed(1) // Convert 5-point to 10-point scale
+  const ratingValue = (rating * 2).toFixed(1)
   
-  // Size variations
   const sizes = {
     small: { text: 14, icon: 16, spacing: '$2' },
     normal: { text: 18, icon: 20, spacing: '$3' },
@@ -396,7 +388,6 @@ export const CompactRatingDisplay = ({
 
   return (
     <XStack alignItems="center" justifyContent="center" space={currentSize.spacing}>
-      {/* Star with rating */}
       <XStack alignItems="center" space="$1">
         <Star 
           size={currentSize.icon} 
@@ -418,7 +409,6 @@ export const CompactRatingDisplay = ({
         </Text>
       </XStack>
 
-      {/* Reviews count with GitHub discussion icon */}
       {reviewCount > 0 && (
         <XStack alignItems="center" space="$1">
           <MessageSquare 
@@ -437,7 +427,6 @@ export const CompactRatingDisplay = ({
   )
 }
 
-// UPDATED: More compact rating component (UPDATED: COMPLETELY remove /10 and review count)
 export const CompactRating = ({ 
   rating,
   reviewCount = 0,
@@ -449,7 +438,7 @@ export const CompactRating = ({
   size?: 'small' | 'normal' | 'large'
   showIcon?: boolean
 }) => {
-  const ratingValue = (rating * 2).toFixed(1) // Convert to 10-point scale
+  const ratingValue = (rating * 2).toFixed(1)
   
   const sizes = {
     small: { text: 12, icon: 14 },
@@ -475,7 +464,6 @@ export const CompactRating = ({
   )
 }
 
-// Feature icon with modern circular design (GitHub style)
 export const FeatureTag = ({ 
   icon: Icon, 
   label, 
@@ -489,7 +477,6 @@ export const FeatureTag = ({
   compact?: boolean
   type?: 'accessibility' | 'babyChanging' | 'ablution' | 'default'
 }) => {
-  // Get unified feature-specific color
   const getFeatureColor = () => {
     switch (type) {
       case 'accessibility': return colors.accessibility
@@ -510,7 +497,7 @@ export const FeatureTag = ({
       paddingHorizontal={label ? (compact ? "$2" : "$3") : 0}
       paddingVertical={label ? (compact ? "$1" : "$2") : 0}
       backgroundColor={available ? featureColor + '20' : '$backgroundPress'}
-      borderRadius={compact ? 20 : "$6"} // More circular for compact
+      borderRadius={compact ? 20 : "$6"}
       borderWidth={1}
       borderColor={available ? featureColor + '40' : '$borderColor'}
     >
@@ -532,7 +519,7 @@ export const FeatureTag = ({
   )
 }
 
-// Compact review card with proper author name handling
+// Compact review card with proper author name handling and translations
 export const ReviewCard = ({ 
   review, 
   onLike,
@@ -542,6 +529,7 @@ export const ReviewCard = ({
   onLike?: (reviewId: string) => void
   onDislike?: (reviewId: string) => void
 }) => {
+  const { t, language } = useTranslation()
   const [expanded, setExpanded] = useState(false)
 
   const formatDate = (timestamp: number) => {
@@ -550,17 +538,18 @@ export const ReviewCard = ({
     const diffTime = Math.abs(now.getTime() - date.getTime())
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
     
-    if (diffDays === 1) return 'Сегодня'
-    if (diffDays === 2) return 'Вчера'
-    if (diffDays <= 7) return `${diffDays} дн. назад`
+    if (diffDays === 1) return t('components.date.today')
+    if (diffDays === 2) return t('components.date.yesterday')
+    if (diffDays <= 7) return t('components.date.daysAgo').replace('{days}', diffDays.toString())
     
-    return date.toLocaleDateString('ru-RU', {
+    const locale = language === 'ru' ? 'ru-RU' : 'uz-UZ'
+    return date.toLocaleDateString(locale, {
       day: 'numeric',
       month: 'short'
     })
   }
 
-  const authorName = review.userName || 'Аноним'
+  const authorName = review.userName || t('components.review.anonymous')
   const netScore = (review.likes || 0) - (review.dislikes || 0)
   const displayName = authorName
 
@@ -593,7 +582,7 @@ export const ReviewCard = ({
               <Pressable onPress={() => setExpanded(!expanded)}>
                 <XStack alignItems="center" space="$1">
                   <Text fontSize={12} color={colors.primary} fontWeight="600">
-                    {expanded ? 'Скрыть' : 'Читать далее'}
+                    {expanded ? t('components.review.hide') : t('components.review.readMore')}
                   </Text>
                   {expanded ? 
                     <ChevronUp size={12} color={colors.primary} /> : 
@@ -605,7 +594,7 @@ export const ReviewCard = ({
           </YStack>
         )}
         
-        {/* Actions - compact voting (right aligned) */}
+        {/* Actions - compact voting */}
         <XStack 
           alignItems="center" 
           space="$1" 
@@ -664,7 +653,6 @@ export const ReviewCard = ({
   )
 }
 
-// NEW: Payment status badge - same style as review counter (circle with light bg + dark border + number)
 export const PaymentStatusBadge = ({ 
   count, 
   type 
@@ -680,10 +668,10 @@ export const PaymentStatusBadge = ({
       justifyContent="center"
       width={32}
       height={32}
-      backgroundColor={color + '20'} // Light background like review counter
-      borderRadius={16} // Fully circular
+      backgroundColor={color + '20'}
+      borderRadius={16}
       borderWidth={2}
-      borderColor={color + '60'} // Darker border like review counter  
+      borderColor={color + '60'}
     >
       <Text fontSize={12} fontWeight="bold" color={color}>
         {count}
@@ -692,7 +680,6 @@ export const PaymentStatusBadge = ({
   )
 }
 
-// NEW: Review header with circular icon and badge (like feature counters)
 export const ReviewSectionHeader = ({ 
   reviewCount = 0,
   showError = false,
@@ -709,11 +696,13 @@ export const ReviewSectionHeader = ({
     paidCount: number
   }
 }) => {
+  const { t } = useTranslation()
+
   return (
     <XStack alignItems="center" justifyContent="space-between">
       <XStack alignItems="center" space="$3">
         <Text fontSize={18} fontWeight="bold">
-          Отзывы
+          {t('components.section.reviews')}
         </Text>
         <YStack 
           alignItems="center" 
@@ -744,17 +733,17 @@ export const ReviewSectionHeader = ({
               justifyContent="center"
               borderWidth={2}
               borderColor="$background"
-          >
-            <Text 
-              fontSize={10} 
-              fontWeight="700" 
-              color="white"
             >
-              {reviewCount}
-            </Text>
-          </YStack>
-        )}
-      </YStack>
+              <Text 
+                fontSize={10} 
+                fontWeight="700" 
+                color="white"
+              >
+                {reviewCount}
+              </Text>
+            </YStack>
+          )}
+        </YStack>
       </XStack>
       
       {/* Error refresh button */}
@@ -766,7 +755,7 @@ export const ReviewSectionHeader = ({
           disabled={loading}
         >
           <Text fontSize={12}>
-            {loading ? 'Загрузка...' : 'Обновить'}
+            {loading ? t('components.button.loading') : t('components.button.refresh')}
           </Text>
         </Button>
       )}
@@ -778,7 +767,7 @@ export const ReviewsList = ({
   reviews, 
   loading = false, 
   error = null,
-  emptyMessage = "Отзывов пока нет",
+  emptyMessage,
   onLike,
   onDislike 
 }: { 
@@ -789,10 +778,13 @@ export const ReviewsList = ({
   onLike?: (reviewId: string) => void
   onDislike?: (reviewId: string) => void
 }) => {
+  const { t } = useTranslation()
+  const displayEmptyMessage = emptyMessage || t('components.list.empty')
+
   if (loading) {
     return (
       <YStack alignItems="center" padding="$3">
-        <Text color="$colorSubtle">Загрузка отзывов...</Text>
+        <Text color="$colorSubtle">{t('components.list.loading')}</Text>
       </YStack>
     )
   }
@@ -812,10 +804,10 @@ export const ReviewsList = ({
       <YStack alignItems="center" padding="$4" space="$2">
         <Text fontSize={32}>💭</Text>
         <Text color="$colorSubtle" textAlign="center" fontSize={14}>
-          {emptyMessage}
+          {displayEmptyMessage}
         </Text>
         <Text fontSize={12} color="$colorSubtle" textAlign="center">
-          Станьте первым, кто оставит отзыв!
+          {t('components.list.beFirst')}
         </Text>
       </YStack>
     )
@@ -823,7 +815,6 @@ export const ReviewsList = ({
 
   return (
     <YStack>
-      {/* Reviews - NO duplicate count display */}
       {reviews.map((review, index) => (
         <React.Fragment key={review.id}>
           <ReviewCard 
@@ -840,7 +831,6 @@ export const ReviewsList = ({
   )
 }
 
-// UPDATED: Simplified review statistics - REMOVED payment stats (moved to ReviewSectionHeader)
 export const ReviewStats = ({ 
   stats,
   featureCounts
@@ -866,7 +856,7 @@ export const ReviewStats = ({
 
   return (
     <YStack space="$4">
-      {/* Feature counters - circular with badges, no title */}
+      {/* Feature counters */}
       {featureCounts && (
         <XStack space="$4" justifyContent="center" alignItems="center">
           <FeatureCounter
