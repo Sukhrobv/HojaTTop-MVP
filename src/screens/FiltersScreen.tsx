@@ -1,84 +1,97 @@
 import React, { useState } from 'react'
-import { ScrollView, YStack, XStack, Text, Button, Separator, Switch, Label, Slider, View } from 'tamagui'
+import { ScrollView, YStack, XStack, Text, Button, Slider, View, Card } from 'tamagui'
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native'
 import { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import { RootStackParamList } from '@/navigation'
 import { Filters } from '@/types'
-import { Accessibility, Baby, Droplets, DollarSign, SlidersHorizontal } from 'lucide-react-native'
+import { Accessibility, Baby, Droplets, DollarSign, Check, X } from 'lucide-react-native'
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Filters'>
 
-// Unified colors (same as ToiletDetailScreen)
+// Brand-aligned colors
 const colors = {
   accessibility: '#2196F3', // Blue
   babyChanging: '#FF9800',  // Orange
   ablution: '#00BCD4',      // Light blue
   free: '#4CAF50',          // Green
   primary: '#4ECDC4',
+  text: '#2D3436',
+  textLight: '#636E72',
+  bg: '#F8F9FA'
 }
 
-const FilterSwitch = ({ 
-  label, 
-  value, 
-  onChange,
+type IconType = React.ComponentType<{ size: number; color: string }>
+
+const FilterCard = ({
+  label,
+  isActive,
+  onPress,
   icon: Icon,
-  iconColor
-}: { 
+  activeColor
+}: {
   label: string
-  value: boolean
-  onChange: (value: boolean) => void
-  icon?: React.ComponentType<{ size: number; color: string }>
-  iconColor?: string
+  isActive: boolean
+  onPress: () => void
+  icon: IconType
+  activeColor: string
 }) => {
   return (
-    <XStack alignItems="center" justifyContent="space-between" paddingVertical="$3">
-      <XStack alignItems="center" space="$3" flex={1}>
-        {Icon && (
-          <View 
-            width={36} 
-            height={36} 
-            borderRadius={18}
-            backgroundColor={value ? iconColor || colors.primary : '#E0E0E0'}
+    <Card
+      width="48%"
+      backgroundColor={isActive ? `${activeColor}15` : 'white'}
+      borderColor={isActive ? activeColor : 'transparent'}
+      borderWidth={2}
+      borderRadius="$5"
+      padding="$3"
+      pressStyle={{ scale: 0.98, opacity: 0.9 }}
+      onPress={onPress}
+      elevation={isActive ? 0 : 2}
+      animation="bouncy"
+    >
+      <YStack space="$2" alignItems="flex-start">
+        <XStack justifyContent="space-between" width="100%">
+          <View
+            width={40}
+            height={40}
+            borderRadius={20}
+            backgroundColor={isActive ? activeColor : '#F0F2F5'}
             alignItems="center"
             justifyContent="center"
           >
-            <Icon size={20} color="white" />
+            <Icon size={22} color={isActive ? 'white' : '#B2BEC3'} />
           </View>
-        )}
-        <Label flex={1} fontSize={16}>{label}</Label>
-      </XStack>
-      <Switch
-        size="$4"
-        checked={value}
-        onCheckedChange={onChange}
-        backgroundColor={value ? colors.primary : '#E0E0E0'}
-      >
-        <Switch.Thumb animation="bouncy" backgroundColor="white" />
-      </Switch>
-    </XStack>
+
+          {isActive && (
+            <View
+              width={24}
+              height={24}
+              borderRadius={12}
+              backgroundColor={activeColor}
+              alignItems="center"
+              justifyContent="center"
+            >
+              <Check size={14} color="white" strokeWidth={3} />
+            </View>
+          )}
+        </XStack>
+
+        <Text
+          fontSize={15}
+          fontWeight={isActive ? '700' : '500'}
+          color={isActive ? colors.text : colors.textLight}
+          marginTop="$1"
+        >
+          {label}
+        </Text>
+      </YStack>
+    </Card>
   )
 }
 
-const FilterSection = ({ title, children }: { title: string, children: React.ReactNode }) => (
-  <YStack 
-    backgroundColor="white" 
-    borderRadius="$4" 
-    padding="$4" 
-    space="$3"
-    shadowColor="#000"
-    shadowOffset={{ width: 0, height: 2 }}
-    shadowOpacity={0.1}
-    shadowRadius={4}
-    elevation={2}
-  >
-    <Text fontSize={18} fontWeight="bold" color="#1A1A1A">
-      {title}
-    </Text>
-    <Separator borderColor="#F0F0F0" />
-    <YStack>
-      {children}
-    </YStack>
-  </YStack>
+const SectionHeader = ({ title }: { title: string }) => (
+  <Text fontSize={18} fontWeight="700" color={colors.text} marginBottom="$3" marginLeft="$1">
+    {title}
+  </Text>
 )
 
 export default function FiltersScreen() {
@@ -86,24 +99,27 @@ export default function FiltersScreen() {
   const route = useRoute<RouteProp<RootStackParamList, 'Filters'>>()
   const { initialFilters, onApply } = route.params || {}
 
-  // Filter state - maxDistance null means "infinite"
-  const [filters, setFilters] = useState<Filters>(initialFilters || {
-    isAccessible: false,
-    hasBabyChanging: false,
-    hasAblution: false,
-    isFree: false,
-    minRating: 0,
-    maxDistance: null, // null = infinite
-  })
+  const [filters, setFilters] = useState<Filters>(
+    initialFilters || {
+      isAccessible: false,
+      hasBabyChanging: false,
+      hasAblution: false,
+      isFree: false,
+      minRating: 0,
+      maxDistance: null
+    }
+  )
 
-  const updateFilter = <K extends keyof Filters>(key: K, value: Filters[K]) => {
-    setFilters(prev => ({ ...prev, [key]: value }))
+  const toggleFilter = <K extends keyof Filters>(key: K) => {
+    setFilters((prev) => ({ ...prev, [key]: !prev[key] }))
+  }
+
+  const updateValue = <K extends keyof Filters>(key: K, value: Filters[K]) => {
+    setFilters((prev) => ({ ...prev, [key]: value }))
   }
 
   const handleApply = () => {
-    if (onApply) {
-      onApply(filters)
-    }
+    if (onApply) onApply(filters)
     navigation.goBack()
   }
 
@@ -114,12 +130,17 @@ export default function FiltersScreen() {
       hasAblution: false,
       isFree: false,
       minRating: 0,
-      maxDistance: null,
+      maxDistance: null
     })
   }
 
-  // Count active filters
-  const activeFiltersCount = [
+  const distanceSliderValue =
+    filters.maxDistance === null || filters.maxDistance === undefined ? 10 : filters.maxDistance
+  const handleDistanceChange = (value: number) => {
+    updateValue('maxDistance', value >= 10 ? null : value)
+  }
+
+  const activeCount = [
     filters.isAccessible,
     filters.hasBabyChanging,
     filters.hasAblution,
@@ -128,173 +149,151 @@ export default function FiltersScreen() {
     filters.maxDistance !== null && filters.maxDistance !== undefined
   ].filter(Boolean).length
 
-  const hasActiveFilters = activeFiltersCount > 0
-
-  // Distance slider value: use 10 for "infinite", otherwise actual value
-  const distanceSliderValue = (filters.maxDistance === null || filters.maxDistance === undefined) ? 10 : filters.maxDistance
-
-  const handleDistanceChange = (value: number) => {
-    if (value >= 10) {
-      updateFilter('maxDistance', null) // infinite
-    } else {
-      updateFilter('maxDistance', value)
-    }
-  }
-
-  const getDistanceLabel = () => {
-    if (filters.maxDistance === null || filters.maxDistance === undefined) {
-      return 'Без ограничений'
-    }
-    if (filters.maxDistance < 1) {
-      return `До ${Math.round(filters.maxDistance * 1000)} м`
-    }
-    return `До ${filters.maxDistance} км`
-  }
-
   return (
-    <ScrollView flex={1} backgroundColor="#F5F5F5">
-      <YStack padding="$4" space="$4" paddingBottom="$8">
-        
-        {/* Active Filters Indicator */}
-        {hasActiveFilters && (
-          <XStack 
-            backgroundColor={colors.primary}
-            borderRadius="$4"
-            padding="$3"
-            alignItems="center"
-            justifyContent="center"
-            space="$2"
-          >
-            <SlidersHorizontal size={20} color="white" />
-            <Text color="white" fontWeight="600" fontSize={14}>
-              Активных фильтров: {activeFiltersCount}
-            </Text>
-          </XStack>
-        )}
+    <YStack flex={1} backgroundColor={colors.bg}>
+      <ScrollView flex={1} contentContainerStyle={{ paddingBottom: 140 }}>
+        <YStack padding="$4" space="$6">
+          {/* GRID of feature filters */}
+          <YStack>
+            <SectionHeader title="Что ищем?" />
+            <XStack flexWrap="wrap" justifyContent="space-between" gap="$3">
+              <FilterCard
+                label="Для инвалидов"
+                icon={Accessibility}
+                activeColor={colors.accessibility}
+                isActive={!!filters.isAccessible}
+                onPress={() => toggleFilter('isAccessible')}
+              />
+              <FilterCard
+                label="С детьми"
+                icon={Baby}
+                activeColor={colors.babyChanging}
+                isActive={!!filters.hasBabyChanging}
+                onPress={() => toggleFilter('hasBabyChanging')}
+              />
+              <FilterCard
+                label="Омовение"
+                icon={Droplets}
+                activeColor={colors.ablution}
+                isActive={!!filters.hasAblution}
+                onPress={() => toggleFilter('hasAblution')}
+              />
+              <FilterCard
+                label="Бесплатно"
+                icon={DollarSign}
+                activeColor={colors.free}
+                isActive={!!filters.isFree}
+                onPress={() => toggleFilter('isFree')}
+              />
+            </XStack>
+          </YStack>
 
-        {/* Features Filters */}
-        <FilterSection title="Особенности">
-          <FilterSwitch
-            label="Доступно для инвалидов"
-            icon={Accessibility}
-            iconColor={colors.accessibility}
-            value={!!filters.isAccessible}
-            onChange={(value) => updateFilter('isAccessible', value)}
-          />
-          <FilterSwitch
-            label="Пеленальный столик"
-            icon={Baby}
-            iconColor={colors.babyChanging}
-            value={!!filters.hasBabyChanging}
-            onChange={(value) => updateFilter('hasBabyChanging', value)}
-          />
-          <FilterSwitch
-            label="Место для омовения"
-            icon={Droplets}
-            iconColor={colors.ablution}
-            value={!!filters.hasAblution}
-            onChange={(value) => updateFilter('hasAblution', value)}
-          />
-          <FilterSwitch
-            label="Только бесплатные"
-            icon={DollarSign}
-            iconColor={colors.free}
-            value={!!filters.isFree}
-            onChange={(value) => updateFilter('isFree', value)}
-          />
-        </FilterSection>
-
-        {/* Rating Filter */}
-        <FilterSection title="Минимальный рейтинг">
-          <YStack space="$4" paddingTop="$2">
-            <XStack alignItems="center" justifyContent="space-between">
-              <Text color="#666">Любой</Text>
-              <Text color="#666">5 ⭐</Text>
+          {/* Rating */}
+          <YStack backgroundColor="white" padding="$4" borderRadius="$5" elevation={1}>
+            <XStack justifyContent="space-between" marginBottom="$4">
+              <Text fontWeight="600" fontSize={16}>
+                Минимальный рейтинг
+              </Text>
+              <Text fontWeight="bold" color={colors.primary} fontSize={16}>
+                {(filters.minRating ?? 0) > 0 ? `${filters.minRating} ⭐` : 'Не важно'}
+              </Text>
             </XStack>
             <Slider
               defaultValue={[filters.minRating ?? 0]}
               max={5}
-              step={0.5}
-              onValueChange={(value) => updateFilter('minRating', value[0])}
+              step={1}
+              onValueChange={(val) => updateValue('minRating', val[0])}
             >
-              <Slider.Track backgroundColor="#E0E0E0" height={4}>
-                <Slider.TrackActive backgroundColor="#4ECDC4" />
+              <Slider.Track backgroundColor="#F0F2F5" height={6}>
+                <Slider.TrackActive backgroundColor="#FFC107" />
               </Slider.Track>
-              <Slider.Thumb
-                circular
-                size="$2"
-                index={0}
-                backgroundColor="#4ECDC4"
-                elevation={2}
-              />
+              <Slider.Thumb size="$3" index={0} circular backgroundColor="white" elevation={3} />
             </Slider>
-            <Text textAlign="center" color="#4ECDC4" fontWeight="600">
-              {(filters.minRating ?? 0) > 0 ? `От ${filters.minRating} ⭐ и выше` : 'Любой рейтинг'}
-            </Text>
+            <XStack justifyContent="space-between" marginTop="$2">
+              <Text fontSize={12} color={colors.textLight}>
+                Любой
+              </Text>
+              <Text fontSize={12} color={colors.textLight}>
+                Только 5.0
+              </Text>
+            </XStack>
           </YStack>
-        </FilterSection>
 
-        {/* Distance Filter */}
-        <FilterSection title="Максимальное расстояние">
-          <YStack space="$4" paddingTop="$2">
-            <XStack alignItems="center" justifyContent="space-between">
-              <Text color="#666">500м</Text>
-              <Text color="#666">∞</Text>
+          {/* Distance */}
+          <YStack backgroundColor="white" padding="$4" borderRadius="$5" elevation={1}>
+            <XStack justifyContent="space-between" marginBottom="$4">
+              <Text fontWeight="600" fontSize={16}>
+                Расстояние
+              </Text>
+              <Text fontWeight="bold" color={colors.primary} fontSize={16}>
+                {filters.maxDistance ? `до ${filters.maxDistance} км` : 'Весь город'}
+              </Text>
             </XStack>
             <Slider
               defaultValue={[distanceSliderValue]}
               min={0.5}
               max={10}
               step={0.5}
-              onValueChange={(value) => handleDistanceChange(value[0])}
+              onValueChange={(val) => handleDistanceChange(val[0])}
             >
-              <Slider.Track backgroundColor="#E0E0E0" height={4}>
-                <Slider.TrackActive backgroundColor="#4ECDC4" />
+              <Slider.Track backgroundColor="#F0F2F5" height={6}>
+                <Slider.TrackActive backgroundColor={colors.primary} />
               </Slider.Track>
-              <Slider.Thumb
-                circular
-                size="$2"
-                index={0}
-                backgroundColor="#4ECDC4"
-                elevation={2}
-              />
+              <Slider.Thumb size="$3" index={0} circular backgroundColor="white" elevation={3} />
             </Slider>
-            <Text textAlign="center" color="#4ECDC4" fontWeight="600">
-              {getDistanceLabel()}
-            </Text>
+            <XStack justifyContent="space-between" marginTop="$2">
+              <Text fontSize={12} color={colors.textLight}>
+                Рядом
+              </Text>
+              <Text fontSize={12} color={colors.textLight}>
+                ∞ Не ограничено
+              </Text>
+            </XStack>
           </YStack>
-        </FilterSection>
+        </YStack>
+      </ScrollView>
 
-        {/* Action Buttons */}
-        <YStack space="$3" marginTop="$2">
-          <Button 
-            size="$5" 
-            backgroundColor="#4ECDC4"
-            pressStyle={{ backgroundColor: '#3BA99C' }}
-            onPress={handleApply}
-            borderRadius="$4"
-          >
-            <Text color="white" fontWeight="bold" fontSize={16}>
-              Применить фильтры {hasActiveFilters ? `(${activeFiltersCount})` : ''}
-            </Text>
-          </Button>
-          
-          {hasActiveFilters && (
-            <Button 
-              size="$5" 
+      {/* Sticky footer */}
+      <YStack
+        position="absolute"
+        bottom={0}
+        left={0}
+        right={0}
+        backgroundColor="white"
+        padding="$4"
+        paddingBottom="$6"
+        borderTopWidth={1}
+        borderTopColor="#F0F2F5"
+        shadowColor="#000"
+        shadowOpacity={0.05}
+        shadowRadius={10}
+      >
+        <XStack space="$3">
+          {activeCount > 0 && (
+            <Button
+              flex={1}
               variant="outlined"
               borderColor="#FF6B6B"
+              color="#FF6B6B"
               onPress={handleReset}
-              borderRadius="$4"
-              backgroundColor="transparent"
+              icon={<X size={18} />}
             >
-              <Text color="#FF6B6B" fontWeight="bold" fontSize={16}>
-                Сбросить фильтры
-              </Text>
+              Сброс
             </Button>
           )}
-        </YStack>
+          <Button
+            flex={2}
+            backgroundColor={colors.primary}
+            onPress={handleApply}
+            pressStyle={{ opacity: 0.9 }}
+            elevation={2}
+          >
+            <Text color="white" fontWeight="bold" fontSize={16}>
+              Показать {activeCount > 0 ? `(${activeCount})` : ''}
+            </Text>
+          </Button>
+        </XStack>
       </YStack>
-    </ScrollView>
+    </YStack>
   )
 }
