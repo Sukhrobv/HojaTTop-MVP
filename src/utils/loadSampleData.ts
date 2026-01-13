@@ -1,11 +1,11 @@
 // Utility to load sample data into Firestore
-import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore'
+import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, QueryDocumentSnapshot, DocumentData } from 'firebase/firestore'
 import { db, COLLECTIONS } from '@/services/firebase'
 import { sampleToilets, sampleReviews } from '@/services/sampleData'
 
 export async function clearCollection(collectionName: string) {
   const querySnapshot = await getDocs(collection(db, collectionName))
-  const deletePromises = querySnapshot.docs.map(doc => deleteDoc(doc.ref))
+  const deletePromises = querySnapshot.docs.map((docSnap: QueryDocumentSnapshot<DocumentData>) => deleteDoc(docSnap.ref))
   await Promise.all(deletePromises)
 }
 
@@ -13,8 +13,8 @@ export async function clearCollection(collectionName: string) {
 export async function fixIncompleteToilets() {
   const toiletsSnapshot = await getDocs(collection(db, COLLECTIONS.TOILETS))
   
-  const updatePromises = toiletsSnapshot.docs.map(async (docSnap) => {
-    const data = docSnap.data()
+  const updatePromises = toiletsSnapshot.docs.map(async (docSnap: QueryDocumentSnapshot<DocumentData>) => {
+    const data = docSnap.data() as DocumentData
     
     // Check if features is missing or incomplete
     if (!data.features || typeof data.features !== 'object') {

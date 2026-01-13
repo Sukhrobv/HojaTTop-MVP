@@ -6,6 +6,8 @@ import {
   getDoc, 
   addDoc, 
   updateDoc,
+  QueryDocumentSnapshot,
+  DocumentData
 } from 'firebase/firestore'
 import { db, COLLECTIONS } from '@/services/firebase'
 import { Toilet, LocationWithDistance, Coordinates, Filters, DataSource } from '@/types'
@@ -39,8 +41,8 @@ export async function getAllToilets(forceRefresh: boolean = false): Promise<{
     const toiletsSnapshot = await getDocs(collection(db, COLLECTIONS.TOILETS))
     const toilets: Toilet[] = []
     
-    toiletsSnapshot.forEach((doc) => {
-      const data = doc.data()
+    toiletsSnapshot.forEach((doc: QueryDocumentSnapshot<DocumentData>) => {
+      const data = doc.data() as DocumentData
       
       // Ensure all required fields exist
       const toilet: Toilet = {

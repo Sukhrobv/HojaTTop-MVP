@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react'
-import * as Clipboard from 'expo-clipboard'
 import { ScrollView, YStack, XStack, Text, Button, TextArea, Spinner, Switch, Sheet } from 'tamagui'
 import { Alert, Pressable, KeyboardAvoidingView, Platform, Keyboard } from 'react-native'
 import { useNavigation, useRoute } from '@react-navigation/native'
@@ -20,7 +19,6 @@ import { useReviews } from '@/hooks/useReviews'
 import { useAuth } from '@/hooks/useAuth'
 import { Review } from '@/types'
 import RatingSelector from '@components/RatingSelector'
-import { RewardSheet } from '@components/ReviewComponents'
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'AddReview'>
 type RouteProps = RouteProp<RootStackParamList, 'AddReview'>
@@ -155,7 +153,6 @@ export default function AddReviewScreen() {
   // Help modals
   const [showRatingHelp, setShowRatingHelp] = useState(false)
   const [showFeaturesHelp, setShowFeaturesHelp] = useState(false)
-  const [showRewardSheet, setShowRewardSheet] = useState(false)
 
   // Handle keyboard appearance
   useEffect(() => {
@@ -183,23 +180,6 @@ export default function AddReviewScreen() {
       keyboardDidHideListener.remove()
     }
   }, [])
-
-  const handleRewardOpenChange = (open: boolean) => {
-    setShowRewardSheet(open)
-    if (!open) {
-      setTimeout(() => {
-        navigation.goBack()
-      }, 300)
-    }
-  }
-
-  const handleCopyReward = async (code: string) => {
-    try {
-      await Clipboard.setStringAsync(code)
-    } catch (error) {
-      console.warn('Clipboard copy failed', error)
-    }
-  }
 
   // Check if user can leave reviews
   const canLeaveReview = isAuthenticated && isRegistered
@@ -262,7 +242,10 @@ export default function AddReviewScreen() {
 
       if (success) {
         Keyboard.dismiss()
-        setShowRewardSheet(true)
+        navigation.navigate('ToiletDetail', { 
+          toiletId, 
+          reward: rewardMock
+        })
         return
       } else {
         Alert.alert(
@@ -593,18 +576,6 @@ export default function AddReviewScreen() {
           "Пеленальный столик: для смены подгузников",
           "Омовение: специальные условия для ритуального омовения"
         ]}
-      />
-
-      <RewardSheet
-        open={showRewardSheet}
-        onOpenChange={handleRewardOpenChange}
-        title={rewardMock.title}
-        subtitle={rewardMock.subtitle}
-        rewardLabel={rewardMock.rewardLabel}
-        code={rewardMock.code}
-        terms={rewardMock.terms}
-        accentColor={colors.primary}
-        onCopy={handleCopyReward}
       />
     </KeyboardAvoidingView>
   )

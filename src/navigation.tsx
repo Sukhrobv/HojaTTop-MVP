@@ -15,7 +15,14 @@ import { Filters } from '@/types'
 // Define navigation params type
 export type RootStackParamList = {
   Map: undefined
-  ToiletDetail: { toiletId: string }
+  ToiletDetail: { toiletId: string; reward?: {
+    title?: string
+    subtitle?: string
+    rewardLabel?: string
+    code?: string
+    terms?: string
+    accentColor?: string
+  } }
   AddReview: { toiletId: string }
   Filters: {
     initialFilters?: Filters

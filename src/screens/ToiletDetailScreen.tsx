@@ -19,7 +19,7 @@ import { useReviews } from '@/hooks/useReviews'
 import { getToiletById } from '@/services/toilets'
 import { getFeatureCounts } from '@/services/reviews'
 import { Toilet, FeatureCounts, Review } from '@/types'
-import { CompactRatingDisplay, ReviewsList, ReviewStats, FeatureTag, ReviewSectionHeader, PaymentStatusBadge, FeatureCounter } from '@components/ReviewComponents'
+import { CompactRatingDisplay, ReviewsList, ReviewStats, FeatureTag, ReviewSectionHeader, PaymentStatusBadge, FeatureCounter, RewardSheet } from '@components/ReviewComponents'
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'ToiletDetail'>
 type RouteProps = RouteProp<RootStackParamList, 'ToiletDetail'>
@@ -59,6 +59,8 @@ export default function ToiletDetailScreen() {
   const [toiletError, setToiletError] = useState<string | null>(null)
   const [featureCounts, setFeatureCounts] = useState<FeatureCounts | null>(null)
   const [reviewList, setReviewList] = useState<ReviewWithVotes[]>([])
+  const [rewardData, setRewardData] = useState<RouteProps['params']['reward'] | undefined>(route.params.reward)
+  const [showRewardSheet, setShowRewardSheet] = useState<boolean>(!!route.params.reward)
 
   const {
     reviews,
@@ -201,6 +203,20 @@ export default function ToiletDetailScreen() {
     handleVote(reviewId, 'downvote')
   }
 
+  useEffect(() => {
+    if (route.params?.reward) {
+      setRewardData(route.params.reward)
+      setShowRewardSheet(true)
+    }
+  }, [route.params?.reward])
+
+  const handleRewardSheetChange = (open: boolean) => {
+    setShowRewardSheet(open)
+    if (!open) {
+      navigation.setParams({ reward: undefined })
+    }
+  }
+
   const handleAddReview = () => {
     navigation.navigate('AddReview', { toiletId })
   }
@@ -279,8 +295,9 @@ export default function ToiletDetailScreen() {
   const paymentStatus = getPaymentStatus()
 
   return (
-    <ScrollView flex={1} backgroundColor="$background">
-      <YStack paddingHorizontal="$2" paddingVertical="$3" space="$2">
+    <>
+      <ScrollView flex={1} backgroundColor="$background">
+        <YStack paddingHorizontal="$2" paddingVertical="$3" space="$2">
         
         {/* MERGED: Main Info + Rating + Features */}
         <YStack 
@@ -424,7 +441,21 @@ export default function ToiletDetailScreen() {
             emptyMessage="Отзывов о данном туалете пока нет"
           />
         </YStack>
-      </YStack>
-    </ScrollView>
+        </YStack>
+      </ScrollView>
+
+      {rewardData && (
+        <RewardSheet
+          open={showRewardSheet}
+          onOpenChange={handleRewardSheetChange}
+          title={rewardData.title || 'Спасибо за отзыв!'}
+          subtitle={rewardData.subtitle}
+          rewardLabel={rewardData.rewardLabel || 'Ваш бонус'}
+          code={rewardData.code}
+          terms={rewardData.terms}
+          accentColor={rewardData.accentColor || colors.primary}
+        />
+      )}
+    </>
   )
 }

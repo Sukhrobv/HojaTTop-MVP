@@ -8,7 +8,9 @@ import {
   orderBy,
   limit,
   doc,
-  updateDoc
+  updateDoc,
+  QueryDocumentSnapshot,
+  DocumentData
 } from 'firebase/firestore'
 import { db, COLLECTIONS } from '@/services/firebase'
 import { Review, DataSource, FeatureCounts } from '@/types'
@@ -59,8 +61,8 @@ export async function getReviewsForToilet(
     }
     const reviews: Review[] = []
     
-    reviewsSnapshot.forEach((doc) => {
-      const data = doc.data()
+    reviewsSnapshot.forEach((doc: QueryDocumentSnapshot<DocumentData>) => {
+      const data = doc.data() as DocumentData
       const review: Review = {
         id: doc.id,
         toiletId: data.toiletId,
@@ -251,8 +253,8 @@ export async function getRecentReviews(
     const reviewsSnapshot = await getDocs(reviewsQuery)
     const reviews: Review[] = []
     
-    reviewsSnapshot.forEach((doc) => {
-      const data = doc.data()
+    reviewsSnapshot.forEach((doc: QueryDocumentSnapshot<DocumentData>) => {
+      const data = doc.data() as DocumentData
       reviews.push({
         id: doc.id,
         toiletId: data.toiletId,

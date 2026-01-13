@@ -35,6 +35,7 @@ const colors = {
   accessibility: '#2196F3', // Blue for accessibility
   babyChanging: '#FF9800',  // Orange for baby changing
   ablution: '#00BCD4',      // Light blue for ablution
+  avatarBg: '#E8EEF8'
 }
 
 // Universal reward bottom sheet with icon-only copy action
@@ -169,7 +170,54 @@ export const RewardSheet = ({
           </Button>
         </YStack>
       </Sheet.Frame>
+      <Sheet.Overlay
+        enterStyle={{ opacity: 0 }}
+        exitStyle={{ opacity: 0 }}
+        backgroundColor="rgba(0,0,0,0.35)"
+      />
     </Sheet>
+  )
+}
+
+const InlineStars = ({ rating, size = 16 }: { rating: number; size?: number }) => {
+  const stars = Array.from({ length: 5 })
+  const fullStars = Math.floor(rating)
+  const hasHalf = rating % 1 >= 0.5
+
+  return (
+    <XStack alignItems="center" space="$1">
+      {stars.map((_, index) => {
+        const filled = index < fullStars
+        const half = !filled && hasHalf && index === fullStars
+        return (
+          <Star
+            key={index}
+            size={size}
+            color={filled || half ? colors.starFilled : '#C6CCD9'}
+            fill={filled ? colors.starGold : half ? colors.starGold : 'none'}
+            strokeWidth={1.5}
+          />
+        )
+      })}
+    </XStack>
+  )
+}
+
+const AvatarCircle = ({ label }: { label: string }) => {
+  const initial = label.trim()[0]?.toUpperCase() || 'A'
+  return (
+    <YStack
+      width={40}
+      height={40}
+      borderRadius={20}
+      alignItems="center"
+      justifyContent="center"
+      backgroundColor={colors.avatarBg}
+    >
+      <Text fontWeight="700" color="#2A3550">
+        {initial}
+      </Text>
+    </YStack>
   )
 }
 
@@ -484,7 +532,6 @@ export const FeatureTag = ({
   )
 }
 
-// Compact review card
 // Compact review card with proper author name handling
 export const ReviewCard = ({ 
   review, 
@@ -505,7 +552,7 @@ export const ReviewCard = ({
     
     if (diffDays === 1) return 'Сегодня'
     if (diffDays === 2) return 'Вчера'
-    if (diffDays <= 7) return `${diffDays} дня назад`
+    if (diffDays <= 7) return `${diffDays} дн. назад`
     
     return date.toLocaleDateString('ru-RU', {
       day: 'numeric',
@@ -513,110 +560,82 @@ export const ReviewCard = ({
     })
   }
 
-  // UPDATED: Handle author name display properly
-  const getAuthorDisplayName = () => {
-    // If userName is already formatted (e.g., "Аноним #ABC123"), use it as is
-    if (review.userName.startsWith('Аноним #')) {
-      return review.userName
-    }
-    
-    // If userName is "Анонимный пользователь" (legacy), keep it
-    if (review.userName === 'Анонимный пользователь') {
-      return review.userName
-    }
-    
-    // Otherwise it's a real user name
-    return review.userName
-  }
-
-  const authorName = getAuthorDisplayName()
+  const authorName = review.userName || 'Аноним'
   const netScore = (review.likes || 0) - (review.dislikes || 0)
-  const isAnonymous = authorName.startsWith('Аноним #') || authorName === 'Анонимный пользователь'
+  const displayName = authorName
 
   return (
-    <YStack 
-      backgroundColor="$background" 
-      borderRadius="$3" 
-      padding="$3"
-      borderWidth={1}
-      borderColor="$borderColor"
-      space="$3"
-    >
-      {/* Header */}
-      <XStack alignItems="center" justifyContent="space-between">
-        <YStack flex={1}>
-          <XStack alignItems="center" space="$2">
-            <Text fontWeight="600" fontSize={15} color="#1A1A1A">
-              {authorName}
+    <XStack paddingVertical="$3" space="$3" alignItems="flex-start">
+      <AvatarCircle label={displayName} />
+
+      <YStack flex={1} space="$2">
+        {/* Header */}
+        <XStack alignItems="center" justifyContent="space-between" space="$2">
+          <YStack flex={1} space="$1">
+            <Text fontWeight="700" fontSize={15} color="#1A1A1A" numberOfLines={1}>
+              {displayName}
             </Text>
-            {isAnonymous && (
-              <Text fontSize={10} color="#666666" backgroundColor="#F0F0F0" paddingHorizontal="$2" paddingVertical="$1" borderRadius="$2">
-                анонимно
-              </Text>
+            <Text fontSize={10} color="#7A8190">
+              {formatDate(review.createdAt)}
+            </Text>
+          </YStack>
+          <InlineStars rating={review.rating} size={16} />
+        </XStack>
+        
+        {/* Comment */}
+        {review.comment && (
+          <YStack space="$2.5">
+            <Text fontSize={14} lineHeight={20} numberOfLines={expanded ? undefined : 3} color="#1A1A1A">
+              {review.comment}
+            </Text>
+            
+            {review.comment.length > 100 && (
+              <Pressable onPress={() => setExpanded(!expanded)}>
+                <XStack alignItems="center" space="$1">
+                  <Text fontSize={12} color={colors.primary} fontWeight="600">
+                    {expanded ? 'Скрыть' : 'Читать далее'}
+                  </Text>
+                  {expanded ? 
+                    <ChevronUp size={12} color={colors.primary} /> : 
+                    <ChevronDown size={12} color={colors.primary} />
+                  }
+                </XStack>
+              </Pressable>
             )}
-          </XStack>
-          <Text fontSize={12} color="#666666">
-            {formatDate(review.createdAt)}
-          </Text>
-        </YStack>
-        <CompactRating rating={review.rating} size="small" />
-      </XStack>
-      
-      {/* Comment */}
-      {review.comment && (
-        <YStack space="$2">
-          <Text fontSize={14} lineHeight={20} numberOfLines={expanded ? undefined : 3} color="#1A1A1A">
-            {review.comment}
-          </Text>
-          
-          {review.comment.length > 100 && (
-            <Pressable onPress={() => setExpanded(!expanded)}>
-              <XStack alignItems="center" space="$1">
-                <Text fontSize={12} color={colors.primary} fontWeight="600">
-                  {expanded ? 'Свернуть' : 'Читать далее'}
-                </Text>
-                {expanded ? 
-                  <ChevronUp size={12} color={colors.primary} /> : 
-                  <ChevronDown size={12} color={colors.primary} />
-                }
-              </XStack>
-            </Pressable>
-          )}
-        </YStack>
-      )}
-      
-      {/* Actions - Reddit-style voting */}
-      <XStack alignItems="center" paddingTop="$2">
-        <XStack
-          alignItems="center"
-          space="$3"
-          backgroundColor="$backgroundPress"
-          padding="$2"
-          borderRadius="$4"
+          </YStack>
+        )}
+        
+        {/* Actions - compact voting (right aligned) */}
+        <XStack 
+          alignItems="center" 
+          space="$1" 
+          paddingTop="$2.5" 
+          justifyContent="flex-end"
+          alignSelf="flex-end"
         >
           <Pressable 
             onPress={() => onLike?.(review.id)}
             style={{ 
-              width: 28, 
-              height: 28, 
-              borderRadius: 8, 
+              width: 24, 
+              height: 24, 
+              borderRadius: 12, 
               alignItems: 'center', 
               justifyContent: 'center',
-              backgroundColor: review.userLiked ? '#9494FF20' : 'transparent'
+              backgroundColor: review.userLiked ? '#E6ECFF' : 'transparent'
             }}
           >
             <ArrowUp 
-              size={24} 
-              color={review.userLiked ? '#9494FF' : colors.neutral}
-              fill={review.userLiked ? '#9494FF' : 'transparent'} 
+              size={14} 
+              color={review.userLiked ? '#4C6FFF' : '#8A8F9B'}
+              fill={review.userLiked ? '#4C6FFF' : 'transparent'} 
             />
           </Pressable>
           
           <Text 
             fontSize={12} 
             fontWeight="700" 
-            color={netScore > 0 ? '#2EAD68' : netScore < 0 ? '#D64545' : colors.neutral}
-            minWidth={24} 
+            color={netScore > 0 ? '#2EAD68' : netScore < 0 ? '#D64545' : '#7A8190'}
+            minWidth={14} 
             textAlign="center"
           >
             {netScore}
@@ -625,23 +644,23 @@ export const ReviewCard = ({
           <Pressable 
             onPress={() => onDislike?.(review.id)}
             style={{ 
-              width: 28, 
-              height: 28, 
-              borderRadius: 8, 
+              width: 24, 
+              height: 24, 
+              borderRadius: 12, 
               alignItems: 'center', 
               justifyContent: 'center',
-              backgroundColor: review.userDisliked ? '#FF8B6020' : 'transparent'
+              backgroundColor: review.userDisliked ? '#FFEAE2' : 'transparent'
             }}
           >
             <ArrowDown 
-              size={24} 
-              color={review.userDisliked ? '#FF8B60' : colors.neutral}
+              size={14} 
+              color={review.userDisliked ? '#FF8B60' : '#8A8F9B'}
               fill={review.userDisliked ? '#FF8B60' : 'transparent'} 
             />
           </Pressable>
         </XStack>
-      </XStack>
-    </YStack>
+      </YStack>
+    </XStack>
   )
 }
 
@@ -692,20 +711,18 @@ export const ReviewSectionHeader = ({
 }) => {
   return (
     <XStack alignItems="center" justifyContent="space-between">
-      <XStack alignItems="center" space="$2">
+      <XStack alignItems="center" space="$3">
         <Text fontSize={18} fontWeight="bold">
           Отзывы
         </Text>
-        
-        {/* Circular icon with badge - same style as feature counters */}
         <YStack 
           alignItems="center" 
           justifyContent="center"
           width={40}
           height={40}
           backgroundColor={reviewCount > 0 ? colors.discussionPurple + '20' : '$backgroundPress'}
-          borderRadius={20} // Fully circular
-          borderWidth={2}
+          borderRadius={20}
+          borderWidth={1}
           borderColor={reviewCount > 0 ? colors.discussionPurple + '40' : '$borderColor'}
           position="relative"
         >
@@ -713,45 +730,32 @@ export const ReviewSectionHeader = ({
             size={18} 
             color={reviewCount > 0 ? colors.discussionPurple : colors.neutral} 
           />
-          
-          {/* Badge with count in corner */}
           {reviewCount > 0 && (
             <YStack
               position="absolute"
-              top={-5}
-              right={-5}
-              width={18}
+              top={-6}
+              right={-6}
+              minWidth={18}
               height={18}
+              paddingHorizontal={6}
               borderRadius={9}
               backgroundColor={colors.discussionPurple}
               alignItems="center"
               justifyContent="center"
               borderWidth={2}
-              borderColor="white"
+              borderColor="$background"
+          >
+            <Text 
+              fontSize={10} 
+              fontWeight="700" 
+              color="white"
             >
-              <Text 
-                fontSize={9} 
-                fontWeight="bold" 
-                color="white"
-              >
-                {reviewCount}
-              </Text>
-            </YStack>
-          )}
-        </YStack>
+              {reviewCount}
+            </Text>
+          </YStack>
+        )}
+      </YStack>
       </XStack>
-      
-      {/* Payment stats - same style as review counter */}
-      {paymentStats && (paymentStats.freeCount > 0 || paymentStats.paidCount > 0) && (
-        <XStack alignItems="center" space="$2">
-          {paymentStats.freeCount > 0 && (
-            <PaymentStatusBadge count={paymentStats.freeCount} type="free" />
-          )}
-          {paymentStats.paidCount > 0 && (
-            <PaymentStatusBadge count={paymentStats.paidCount} type="paid" />
-          )}
-        </XStack>
-      )}
       
       {/* Error refresh button */}
       {showError && onRefresh && (
@@ -818,15 +822,19 @@ export const ReviewsList = ({
   }
 
   return (
-    <YStack space="$2">
+    <YStack>
       {/* Reviews - NO duplicate count display */}
-      {reviews.map((review) => (
-        <ReviewCard 
-          key={review.id} 
-          review={review}
-          onLike={onLike}
-          onDislike={onDislike}
-        />
+      {reviews.map((review, index) => (
+        <React.Fragment key={review.id}>
+          <ReviewCard 
+            review={review}
+            onLike={onLike}
+            onDislike={onDislike}
+          />
+          {index < reviews.length - 1 && (
+            <YStack height={1} backgroundColor="$borderColor" marginVertical="$2" />
+          )}
+        </React.Fragment>
       ))}
     </YStack>
   )
