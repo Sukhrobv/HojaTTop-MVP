@@ -148,7 +148,7 @@ export default function MapScreen() {
             <Search size={20} color="#999" />
             <Input
               flex={1}
-              placeholder="Поиск туалетов..."
+              placeholder="Поиск..."
               value={searchQuery}
               onChangeText={setSearchQuery}
               backgroundColor="transparent"
@@ -289,7 +289,7 @@ export default function MapScreen() {
           disabled={locationLoading}
           style={{
             position: 'absolute',
-            bottom: showToiletsList ? 220 : 30,
+            bottom: showToiletsList ? 155 : 30,
             right: 20,
             backgroundColor: 'white',
             borderRadius: 30,
@@ -311,7 +311,7 @@ export default function MapScreen() {
         {/* Status Info - динамическое позиционирование */}
         <View style={{
           position: 'absolute',
-          bottom: showToiletsList ? 220 : 30,
+          bottom: showToiletsList ? 155 : 30,
           left: 20,
           backgroundColor: 'rgba(76, 205, 196, 0.9)',
           borderRadius: 20,
@@ -324,7 +324,7 @@ export default function MapScreen() {
           elevation: 3,
         }}>
           <Text color="white" fontSize={12} fontWeight="bold">
-            Найдено: {displayedToilets.length} туалетов
+            Найдено: {displayedToilets.length} точек
           </Text>
           {dataSource === 'cache' && (
             <Text color="white" fontSize={10} opacity={0.9}>
