@@ -12,7 +12,11 @@ import {
   DollarSign,
   X,
   UserPlus,
-  AlertCircle
+  AlertCircle,
+  ShoppingBag,
+  Droplet,
+  Sparkles,
+  Shield
 } from 'lucide-react-native'
 import { RootStackParamList } from '@/navigation'
 import { useReviews } from '@/hooks/useReviews'
@@ -100,28 +104,26 @@ const HelpModal = ({
   open: boolean
   onClose: () => void
   title: string 
-  content: string[]
+  content: React.ReactNode
 }) => (
-  <Sheet modal open={open} onOpenChange={onClose} snapPoints={[50]} dismissOnSnapToBottom>
+  <Sheet modal open={open} onOpenChange={onClose} snapPoints={[63]} dismissOnSnapToBottom>
     <Sheet.Frame>
       <Sheet.Handle />
-      <YStack padding="$4" space="$3">
+      <YStack padding="$4" space="$3" paddingBottom="$5">
         <XStack alignItems="center" justifyContent="space-between">
           <Text fontSize={18} fontWeight="bold">{title}</Text>
           <Pressable onPress={onClose}>
             <X size={20} color={colors.neutral} />
           </Pressable>
         </XStack>
-        
-        <YStack space="$2">
-          {content.map((item, index) => (
-            <Text key={index} fontSize={14} color="#666666">
-              • {item}
-            </Text>
-          ))}
-        </YStack>
+        {content}
       </YStack>
     </Sheet.Frame>
+    <Sheet.Overlay
+      enterStyle={{ opacity: 0 }}
+      exitStyle={{ opacity: 0 }}
+      backgroundColor="rgba(0,0,0,0.4)"
+    />
   </Sheet>
 )
 
@@ -555,27 +557,190 @@ export default function AddReviewScreen() {
       <HelpModal
         open={showRatingHelp}
         onClose={() => setShowRatingHelp(false)}
-        title="Как оценивать?"
-        content={[
-          "Выберите оценку от 1 до 5 звезд",
-          "1 звезда: Ужасно",
-          "2 звезды: Плохо", 
-          "3 звезды: Нормально",
-          "4 звезды: Хорошо",
-          "5 звезд: Отлично"
-        ]}
+        title="Что важно при оценке?"
+        content={
+          <YStack space="$4">
+            <YStack space="$3">
+              <XStack space="$3" alignItems="flex-start">
+                <YStack 
+                  width={44} 
+                  height={44} 
+                  borderRadius="$full" 
+                  backgroundColor={colors.primary + '20'}
+                  alignItems="center"
+                  justifyContent="center"
+                  alignSelf="flex-start"
+                >
+                  <ShoppingBag size={25} color={colors.primary} strokeWidth={2.4} />
+                </YStack>
+                <YStack flex={1} space="$1">
+                  <Text fontWeight="700" fontSize={14} color="#1A1A1A">«Тест на крючок»</Text>
+                  <Text fontSize={13} color="#555E6D">Есть ли крючок/полка для сумки или куртки?</Text>
+                </YStack>
+              </XStack>
+
+              <XStack space="$3" alignItems="flex-start">
+                <YStack 
+                  width={44} 
+                  height={44} 
+                  borderRadius="$full" 
+                  backgroundColor={colors.primary + '20'}
+                  alignItems="center"
+                  justifyContent="center"
+                  alignSelf="flex-start"
+                >
+                  <Droplet size={25} color={colors.primary} strokeWidth={2.4} />
+                </YStack>
+                <YStack flex={1} space="$1">
+                  <Text fontWeight="700" fontSize={14} color="#1A1A1A">Гигиена и вода</Text>
+                  <Text fontSize={13} color="#555E6D">Есть ли вода, мыло и условия для омовения?</Text>
+                </YStack>
+              </XStack>
+
+              <XStack space="$3" alignItems="flex-start">
+                <YStack 
+                  width={44} 
+                  height={44} 
+                  borderRadius="$full" 
+                  backgroundColor={colors.primary + '20'}
+                  alignItems="center"
+                  justifyContent="center"
+                  alignSelf="flex-start"
+                >
+                  <Sparkles size={25} color={colors.primary} strokeWidth={2.4} />
+                </YStack>
+                <YStack flex={1} space="$1">
+                  <Text fontWeight="700" fontSize={14} color="#1A1A1A">Чистота и запах</Text>
+                  <Text fontSize={13} color="#555E6D">Чистый пол, сантехника, нет резкого запаха.</Text>
+                </YStack>
+              </XStack>
+
+              <XStack space="$3" alignItems="flex-start">
+                <YStack 
+                  width={44} 
+                  height={44} 
+                  borderRadius="$full" 
+                  backgroundColor={colors.primary + '20'}
+                  alignItems="center"
+                  justifyContent="center"
+                  alignSelf="flex-start"
+                >
+                  <Shield size={25} color={colors.primary} strokeWidth={2.4} />
+                </YStack>
+                <YStack flex={1} space="$1">
+                  <Text fontWeight="700" fontSize={14} color="#1A1A1A">Приватность</Text>
+                  <Text fontSize={13} color="#555E6D">Исправен ли замок? Чувствуете безопасность?</Text>
+                </YStack>
+              </XStack>
+            </YStack>
+
+            <YStack space="$2">
+              <Text fontWeight="700" fontSize={14} color="#1A1A1A">Шпаргалка по звёздам</Text>
+              <YStack space="$1.5">
+                <Text fontSize={13}>
+                  <Text fontWeight="700" color="#D64545">1 — Критично.</Text>
+                  <Text color="#6A6F80"> Грязно, сломано, страшно зайти.</Text>
+                </Text>
+                <Text fontSize={13}>
+                  <Text fontWeight="700" color="#7A8190">3 — База.</Text>
+                  <Text color="#6A6F80"> Чисто, но не хватает мыла/крючка/бумаги.</Text>
+                </Text>
+                <Text fontSize={13}>
+                  <Text fontWeight="700" color={colors.primary}>5 — Идеал.</Text>
+                  <Text color="#6A6F80"> Чисто, есть крючок, мыло, вода — комфортно.</Text>
+                </Text>
+              </YStack>
+            </YStack>
+          </YStack>
+        }
       />
 
       <HelpModal
         open={showFeaturesHelp}
         onClose={() => setShowFeaturesHelp(false)}
-        title="Про удобства"
-        content={[
-          "Отметьте, какие удобства есть в точке",
-          "Доступность: пандусы, широкие двери, поручни",
-          "Пеленальный столик: для смены подгузников",
-          "Омовение: специальные условия для ритуального омовения"
-        ]}
+        title="Что считается удобством?"
+        content={
+          <YStack space="$4">
+            <Text fontSize={13} color="#555E6D">
+              Отмечайте только то, что реально работает и доступно посетителям.
+            </Text>
+
+            <YStack space="$3">
+              <XStack space="$3" alignItems="flex-start">
+                <YStack 
+                  width={44} 
+                  height={44} 
+                  borderRadius="$full" 
+                  backgroundColor={colors.accessibility + '20'}
+                  alignItems="center"
+                  justifyContent="center"
+                  alignSelf="flex-start"
+                >
+                  <Accessibility size={24} color={colors.accessibility} strokeWidth={2.2} />
+                </YStack>
+                <YStack flex={1} space="$1">
+                  <Text fontWeight="900" fontSize={14} color="#1A1A1A">Доступная среда</Text>
+                  <Text fontSize={13} color="#555E6D" lineHeight={19}>
+                    Пандус (не крутой), широкие двери, поручни. Реальная возможность заехать на коляске.
+                  </Text>
+                </YStack>
+              </XStack>
+
+              <XStack space="$3" alignItems="flex-start">
+                <YStack 
+                  width={44} 
+                  height={44} 
+                  borderRadius="$full" 
+                  backgroundColor={colors.babyChanging + '20'}
+                  alignItems="center"
+                  justifyContent="center"
+                  alignSelf="flex-start"
+                >
+                  <Baby size={24} color={colors.babyChanging} strokeWidth={2.2} />
+                </YStack>
+                <YStack flex={1} space="$1">
+                  <Text fontWeight="900" fontSize={14} color="#1A1A1A">Родителям и малышам</Text>
+                  <Text fontSize={13} color="#555E6D" lineHeight={19}>
+                    Пеленальный столик или чистая безопасная поверхность для ухода за ребёнком.
+                  </Text>
+                </YStack>
+              </XStack>
+
+              <XStack space="$3" alignItems="flex-start">
+                <YStack 
+                  width={44} 
+                  height={44} 
+                  borderRadius="$full" 
+                  backgroundColor={colors.ablution + '20'}
+                  alignItems="center"
+                  justifyContent="center"
+                  alignSelf="flex-start"
+                >
+                  <Droplets size={24} color={colors.ablution} strokeWidth={2.2} />
+                </YStack>
+                <YStack flex={1} space="$1">
+                  <Text fontWeight="900" fontSize={14} color="#1A1A1A">Условия для омовения</Text>
+                  <Text fontSize={13} color="#555E6D" lineHeight={19}>
+                    Кувшин (обдаста), низкий кран/шланг, сухая зона для подготовки. Подходит для тахарата.
+                  </Text>
+                </YStack>
+              </XStack>
+            </YStack>
+
+            <XStack 
+              marginTop="$1" 
+              padding="$3" 
+              backgroundColor="$backgroundFocus" 
+              borderRadius="$4"
+              borderWidth={1}
+              borderColor="$borderColor"
+            >
+              <Text fontSize={13} color="#4A5568">
+                <Text fontWeight="900" color={colors.primary}>Ваша помощь:</Text> честно отмечая эти пункты, вы помогаете людям заранее планировать маршрут и избегать стресса.
+              </Text>
+            </XStack>
+          </YStack>
+        }
       />
     </KeyboardAvoidingView>
   )
